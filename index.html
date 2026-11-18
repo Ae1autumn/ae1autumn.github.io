@@ -309,6 +309,8 @@ a{text-decoration:none}
   color:var(--title);line-height:1.45;margin-bottom:.55rem;
   text-wrap:balance;
 }
+/* 标题里的数字改用正文字体，避免显示字体的旧式数字 */
+.title-num{font-family:var(--font-body);font-variant-numeric:lining-nums}
 .card-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.6rem}
 .card-tag{
   font-family:var(--font-mono);font-size:.68rem;letter-spacing:.05em;
@@ -573,6 +575,9 @@ a{text-decoration:none}
 .fs-chap-sep.collapsed{max-width:0!important;padding:0;opacity:0}
 .fs-chap-hint{color:var(--text-3);letter-spacing:.04em;transition:opacity .25s}
 .fs-chap-hint.collapsed{opacity:0;max-width:0;overflow:hidden}
+/* 没有章节时隐藏「目录」文字，但保留按钮的点击区域 */
+.post-chapters-wrap.is-empty .post-chapters-hint,
+.fs-chap.is-empty .fs-chap-hint{opacity:0}
 .fs-timer{
   right:var(--panel-gap);flex-shrink:0;gap:.32rem;
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
@@ -593,6 +598,7 @@ a{text-decoration:none}
 .post-content h1,.post-content h2,.post-content h3,.post-content h4{
   font-family:var(--font-display);font-weight:500;color:var(--title);
   margin:2.4rem 0 .9rem;line-height:1.4;scroll-margin-top:1rem;
+  font-variant-numeric:lining-nums;
 }
 .post-content h1{font-size:1.55rem}
 .post-content h2{font-size:1.3rem}
@@ -617,7 +623,7 @@ a{text-decoration:none}
 .post-content li > p + p{display:block;margin:.5rem 0 0}
 
 /* markdown 补充：表格 / 任务列表 / 删除线 / 深级标题 */
-.post-content h5,.post-content h6{font-family:var(--font-display);font-weight:500;color:var(--text-2);margin:2rem 0 .8rem;line-height:1.4;scroll-margin-top:1rem}
+.post-content h5,.post-content h6{font-family:var(--font-display);font-weight:500;color:var(--text-2);margin:2rem 0 .8rem;line-height:1.4;scroll-margin-top:1rem;font-variant-numeric:lining-nums}
 .post-content h5{font-size:.95rem}
 .post-content h6{font-size:.88rem;color:var(--text-3)}
 .post-content .table-wrap{
@@ -1408,6 +1414,18 @@ window.postTags = function (post) {
     return t != null && String(t).trim() !== '';
   });
 };
+/* 标题里的数字（含 07.02 / 2026-07-02 这种连续数字）改用正文字体 */
+window.formatTitle = function (value) {
+  var s = String(value == null ? '' : value);
+  var re = /[0-9]+(?:[.\-/][0-9]+)*/g;
+  var out = '', last = 0, m;
+  while ((m = re.exec(s))) {
+    out += window.escapeHTML(s.slice(last, m.index));
+    out += '<span class="title-num">' + window.escapeHTML(m[0]) + '</span>';
+    last = m.index + m[0].length;
+  }
+  return out + window.escapeHTML(s.slice(last));
+};
 
 window.__siteDataReady.then(function renderFeed() {
   var EYE = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -1426,7 +1444,7 @@ window.__siteDataReady.then(function renderFeed() {
     }).join('');
     return '<article class="card" tabindex="0" role="link" data-slug="' + esc(p.slug) + '" data-src="' + esc(p.src) + '">' +
       (p.pin ? '<div class="card-corner" aria-hidden="true"></div>' : '') +
-      '<h2 class="card-title">' + esc(window.postValue(p.title, 'Untitled')) + '</h2>' +
+      '<h2 class="card-title">' + window.formatTitle(window.postValue(p.title, 'Untitled')) + '</h2>' +
       '<div class="card-tags">' + tags + '</div>' +
       '<p class="card-excerpt">' + esc(window.postValue(p.excerpt, 'Description')) + '</p>' +
       '<div class="card-meta">' +
@@ -2490,6 +2508,7 @@ window.__siteDataReady.then(function () {
     headings = all.map(function (el) {
       return { el: el, level: parseInt(el.tagName[1], 10), text: el.textContent.trim() };
     });
+    setChapterEmpty(!headings.length);
     /* 目录在文章加载期间就被打开时，标题建好后补渲染一次 */
     if (openPanel === 'chapters') {
       buildToc();
@@ -2602,12 +2621,18 @@ window.__siteDataReady.then(function () {
     syncTocActive();
   }
 
+  function setChapterEmpty(isEmpty) {
+    chapWrap.classList.toggle('is-empty', isEmpty);
+    fsChap.classList.toggle('is-empty', isEmpty);
+  }
+
   function resetChapterBlocks() {
     headings = [];
     tocItems = [];
     activeTocIdx = -1;
     currentChap1 = '';
     currentChap2 = '';
+    setChapterEmpty(true);
     resetChapterIndicator({ hint: chapHint, first: chap1, sep: chapSep, second: chap2 });
     resetChapterIndicator({ hint: fsChapHint, first: fsChap1, sep: fsChapSep, second: fsChap2 });
   }
@@ -2917,7 +2942,7 @@ window.__siteDataReady.then(function () {
     currentSlug = slug; currentMeta = meta;
     closeAllPanels();
     syncBlurHeight();
-    postHeaderTitle.textContent = window.postValue(meta.title, 'Untitled');
+    postHeaderTitle.innerHTML = window.formatTitle(window.postValue(meta.title, 'Untitled'));
 
     postPage.classList.add('is-open');
     postPage.setAttribute('aria-hidden', 'false');
