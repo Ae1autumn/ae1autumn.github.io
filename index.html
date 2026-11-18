@@ -532,7 +532,7 @@ a{text-decoration:none}
   /* 最宽时两侧各留 12px，并与已用时间隔开 12px（时间条约 60px） */
   left:var(--panel-gap);max-width:calc(100vw - 96px);overflow:hidden;cursor:pointer;
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.02em;color:var(--text-2);
-  transition:border-color .18s;
+  transition:border-color .18s;touch-action:manipulation;
 }
 .fs-chap:hover{border-color:var(--accent)}
 /* 阅读进度：背景填充（宽度由 JS 写入 --fs-progress） */
@@ -1163,7 +1163,7 @@ a{text-decoration:none}
 
     <div class="post-content" id="post-content"></div>
 
-    <button class="fs-float fs-chap" id="fs-chap" aria-label="章节目录" title="章节目录">
+    <button class="fs-float fs-chap" id="fs-chap" aria-label="章节目录" title="章节目录（双击退出全屏）">
       <span class="fs-chap-hint" id="fs-chap-hint">目录</span>
       <span class="fs-chap-block collapsed" id="fs-chap-1"><span class="chap-text"></span></span>
       <span class="fs-chap-sep collapsed" id="fs-chap-sep">-</span>
@@ -2229,11 +2229,19 @@ window.__siteDataReady.then(function () {
   let postScrollLocked = false;
   let closePostTimer = null;
   let isFullscreen = false;
+  let fsChapTapTimer = null;
+  let fsChapLastTap = 0;
 
   /* ── 全屏阅读模式 ── */
   function setFullscreen(on) {
     if (isFullscreen === on) return;
     isFullscreen = on;
+    if (!on) {
+      /* 取消待执行的单击目录切换，避免退出全屏后又弹开目录 */
+      clearTimeout(fsChapTapTimer);
+      fsChapTapTimer = null;
+      fsChapLastTap = 0;
+    }
     postPage.classList.toggle('is-fullscreen', on);
     btnFullscreen.classList.toggle('is-active', on);
     btnFullscreen.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -3205,9 +3213,26 @@ window.__siteDataReady.then(function () {
     if (guardFailed()) return;
     setFullscreen(!isFullscreen);
   });
-  fsChap.addEventListener('click', function () {
-    if (guardFailed() || !headings.length) return;
-    togglePanel('chapters');
+  fsChap.addEventListener('click', function (e) {
+    const now = Date.now();
+    const isDouble = e.detail >= 2 || (now - fsChapLastTap) < 300;
+    if (isDouble) {
+      /* 双击章节指示器：退出全屏，不触发目录切换 */
+      clearTimeout(fsChapTapTimer);
+      fsChapTapTimer = null;
+      fsChapLastTap = 0;
+      if (isFullscreen) setFullscreen(false);
+      return;
+    }
+    /* 单击延迟执行，给双击留出判定时间 */
+    fsChapLastTap = now;
+    clearTimeout(fsChapTapTimer);
+    fsChapTapTimer = setTimeout(function () {
+      fsChapTapTimer = null;
+      fsChapLastTap = 0;
+      if (guardFailed() || !headings.length) return;
+      togglePanel('chapters');
+    }, 280);
   });
   $('toc-exit-fs').addEventListener('click', function () { setFullscreen(false); });
 
