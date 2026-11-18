@@ -744,11 +744,13 @@ a{text-decoration:none}
 #panel-search .panel-box{transform:translateX(calc(100% + 20px));transition:transform .36s var(--ease-spring)}
 #panel-search.is-open .panel-box{transform:translateX(0)}
 #panel-comments{
-  min-height:180px;
-  max-height:100%;
+  flex:1;
+  min-height:0;
   overflow:hidden;
   transition:height .3s var(--ease-out);
 }
+#panel-comments.is-error{flex:0 0 180px;max-height:180px}
+
 #panel-comments .panel-box{height:100%;transform:translateY(-100%);transition:transform .36s var(--ease-spring)}
 #panel-comments.is-open .panel-box{transform:translateY(0)}
 .panel:not(.is-open) .panel-box{transition:transform .36s cubic-bezier(.4,0,1,1) .08s;pointer-events:none}
@@ -829,15 +831,15 @@ a{text-decoration:none}
 .fade-t.fade-b{-webkit-mask-image:linear-gradient(to bottom,transparent,#000 16px,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(to bottom,transparent,#000 16px,#000 calc(100% - 16px),transparent)}
 
 /* 评论面板 */
-.cm-body{display:flex;flex-direction:column;overscroll-behavior:contain}
-.giscus-host{width:100%;flex:0 0 auto}
+.cm-body{flex:1;min-height:0;display:flex;flex-direction:column;overscroll-behavior:contain}
+.giscus-host{width:100%;flex:1 1 auto;min-height:0;overflow-y:auto}
 .giscus-host[hidden]{display:none}
 .giscus-host iframe{width:100%!important}
 
 /* 未配置 key 或加载失败时的占位 */
 .comments-placeholder{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;
-  padding:2rem 1rem;text-align:center;color:var(--text-3);
+  padding:1rem;text-align:center;color:var(--text-3);
 }
 .comments-placeholder[hidden]{display:none}
 .comments-placeholder svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
