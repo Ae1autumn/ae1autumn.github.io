@@ -3209,6 +3209,16 @@ window.__siteDataReady.then(function () {
   }
   function mountGiscus() {
     if (!currentSlug || giscusFailed) return;
+
+    /* data.jsonc 还没加载完就点了评论：等数据就绪再挂载，
+       否则会拿空配置误判成「评论不可用」并永久锁死 */
+    if (!window.SITE_DATA) {
+      window.__siteDataReady.then(function () {
+        if (openPanel === 'comments' && !giscusFailed) mountGiscus();
+      });
+      return;
+    }
+
     const cfg = window.GISCUS || {};
 
     /* 配置不完整时使用占位，不发起第三方请求 */
@@ -3261,7 +3271,13 @@ window.__siteDataReady.then(function () {
 
   window.addEventListener('message', function (e) {
     if (e.origin !== GISCUS_ORIGIN || !e.data || !e.data.giscus) return;
-    if (e.data.giscus.error) { showCommentsFallback(); return; }
+    var err = e.data.giscus.error;
+    /* 该文章还没有人评论时 giscus 会返回「Discussion not found」，
+       这是正常状态（首次发评论时自动建讨论），不是加载失败 */
+    if (err && String(err).indexOf('Discussion not found') === -1) {
+      showCommentsFallback();
+      return;
+    }
     clearTimeout(giscusTimer);
   });
 
