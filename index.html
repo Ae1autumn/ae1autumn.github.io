@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='none' stroke='%239b3d32' stroke-width='1.5'/%3E%3Cpath d='M8 22L16 10L24 22M11 18H21' fill='none' stroke='%239b3d32' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Noto+Serif+SC:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
 <style>
 :root{
@@ -49,9 +49,11 @@
   --syn-type:  oklch(0.50 0.08 200);
 
   /* type */
-  --font-display: "Cormorant Garamond", "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
-  --font-body:    "Noto Serif SC", "Songti SC", "STSong", Georgia, "Times New Roman", serif;
-  --font-mono:    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  --font-display: "Times New Roman", serif;
+  --font-body:    "Times New Roman", serif;
+  --font-mono:    "Times New Roman", serif;
+  /* slogan 保留原来的展示字体，不参与全局字体统一 */
+  --font-slogan:  "Cormorant Garamond", serif;
 
   /* metrics */
   --page-w: 720px;
@@ -262,7 +264,7 @@ a{text-decoration:none}
   text-transform:uppercase;color:var(--text-3);
 }
 .slogan-text{
-  font-family:var(--font-display);
+  font-family:var(--font-slogan);
   font-size:clamp(1.5rem,4.2vw,2.1rem);
   font-weight:400;color:var(--text-2);
   letter-spacing:.02em;line-height:1.4;
@@ -1073,7 +1075,7 @@ a{text-decoration:none}
       <div class="sm-tabs" id="sm-tabs" role="tablist">
         <div class="sm-tab-slider" id="sm-tab-slider" aria-hidden="true"></div>
         <button class="sm-tab-btn is-active" data-mode="title" role="tab" aria-selected="true" aria-label="按标题搜索">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="monospace" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="Times New Roman, serif" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
         </button>
         <button class="sm-tab-btn" data-mode="date" role="tab" aria-selected="false" aria-label="按日期搜索">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.1"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><rect x="4" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/><rect x="8.9" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/></svg>
