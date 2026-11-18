@@ -577,9 +577,8 @@ a{text-decoration:none}
 .fs-chap-sep.collapsed{max-width:0!important;padding:0;opacity:0}
 .fs-chap-hint{color:var(--text-3);letter-spacing:.04em;transition:opacity .25s}
 .fs-chap-hint.collapsed{opacity:0;max-width:0;overflow:hidden}
-/* 没有章节时隐藏「目录」文字，但保留按钮的点击区域 */
-.post-chapters-wrap.is-empty .post-chapters-hint,
-.fs-chap.is-empty .fs-chap-hint{opacity:0}
+/* 普通模式没有章节时隐藏「目录」文字，但保留按钮点击区域；全屏模式显示占位连字符 */
+.post-chapters-wrap.is-empty .post-chapters-hint{opacity:0}
 .fs-timer{
   right:var(--panel-gap);flex-shrink:0;gap:.32rem;
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
@@ -2626,6 +2625,8 @@ window.__siteDataReady.then(function () {
   function setChapterEmpty(isEmpty) {
     chapWrap.classList.toggle('is-empty', isEmpty);
     fsChap.classList.toggle('is-empty', isEmpty);
+    /* 全屏悬浮条没有章节时用连字符占位，保持可见、可点击 */
+    fsChapHint.textContent = isEmpty ? '-' : '目录';
   }
 
   function resetChapterBlocks() {
