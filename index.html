@@ -744,7 +744,7 @@ a{text-decoration:none}
 #panel-search .panel-box{transform:translateX(calc(100% + 20px));transition:transform .36s var(--ease-spring)}
 #panel-search.is-open .panel-box{transform:translateX(0)}
 #panel-comments{
-  height:180px;
+  min-height:180px;
   overflow:hidden;
   transition:height .3s var(--ease-out);
 }
@@ -763,7 +763,7 @@ a{text-decoration:none}
 .panel-close{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-3);transition:color .18s,background-color .18s}
 .panel-close:hover{color:var(--text);background:var(--bg)}
 .panel-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.panel-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.panel-body{flex:1;overflow-y:auto;overscroll-behavior:contain}
 
 /* 章节面板 */
 .toc-list{padding:.3rem .55rem .6rem}
@@ -3185,17 +3185,17 @@ window.__siteDataReady.then(function () {
     panelComments.style.height = '';
   }
 
-  /* 有内容后按内容撑开，最高撑满正文可用区域（含四周间距，整体 100% 不溢出），
+  /* 有内容后按内容撑开，最高撑满屏幕可用高度（含底部间距，整体 100% 不溢出），
      超出部分由 .cm-body 滚动 */
   function fitCommentsPanel() {
     const hostH = giscusHost.getBoundingClientRect().height;
     if (hostH <= 0) return;
     panelComments.classList.add('is-loaded');
     const headH = panelComments.querySelector('.panel-head').offsetHeight;
-    const rect = postContent.getBoundingClientRect();
     const top = panelComments.getBoundingClientRect().top;
-    /* 面板顶端到正文视口底部，底部留一个 GAP，保证含边距正好占满 100% */
-    const maxH = Math.max(180, Math.min(rect.bottom, window.innerHeight) - top - GAP);
+    /* 面板顶端到屏幕底部的全部可用高度，底部留一个 GAP：
+       面板 + 间距正好占满 100%，不再受正文区域高度限制 */
+    const maxH = Math.max(180, window.innerHeight - top - GAP);
     const next = Math.max(180, Math.min(headH + hostH, maxH));
     const cur = parseFloat(panelComments.style.height);
     if (Number.isFinite(cur) && Math.abs(cur - next) < 1) return;
