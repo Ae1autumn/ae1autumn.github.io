@@ -309,8 +309,12 @@ a{text-decoration:none}
 .card-title{
   font-family:var(--font-display);font-size:1.18rem;font-weight:500;
   color:var(--title);line-height:1.45;margin-bottom:.55rem;
-  text-wrap:balance;
+  white-space:nowrap;overflow-x:auto;overflow-y:hidden;
 }
+/* 卡片标题过长时横向滚动，两侧按可滚动余量渐隐 */
+.card-title.fade-l{-webkit-mask-image:linear-gradient(to right,transparent,#000 14px);mask-image:linear-gradient(to right,transparent,#000 14px)}
+.card-title.fade-r{-webkit-mask-image:linear-gradient(to left,transparent,#000 14px);mask-image:linear-gradient(to left,transparent,#000 14px)}
+.card-title.fade-l.fade-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
 /* 标题里的数字改用正文字体，避免显示字体的旧式数字 */
 .title-num{font-family:var(--font-body);font-variant-numeric:lining-nums}
 .card-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.6rem}
@@ -323,7 +327,8 @@ a{text-decoration:none}
 .card-excerpt{
   font-size:.88rem;line-height:1.75;color:var(--text-2);
   margin-bottom:.9rem;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  max-height:calc(1.75em * 3);
+  overflow-y:auto;overflow-x:hidden;
 }
 .feed-error{
   padding:1.4rem 0;font-size:.85rem;line-height:1.8;color:var(--text-3);
@@ -1468,6 +1473,36 @@ window.__siteDataReady.then(function renderFeed() {
   }
   if (cardsEl) cardsEl.innerHTML = html;
   if (feedCnt) feedCnt.textContent = window.POSTS.length + ' 篇';
+
+  /* 卡片标题横向 / 简介纵向滚动的边缘渐隐 */
+  function updateCardTitleFade(el) {
+    var over = el.scrollWidth > el.clientWidth + 1;
+    el.classList.toggle('fade-l', over && el.scrollLeft > 1);
+    el.classList.toggle('fade-r', over && el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  }
+  function updateCardExcerptFade(el) {
+    var over = el.scrollHeight > el.clientHeight + 1;
+    el.classList.toggle('fade-t', over && el.scrollTop > 1);
+    el.classList.toggle('fade-b', over && el.scrollTop < el.scrollHeight - el.clientHeight - 1);
+  }
+  function refreshCardFades() {
+    if (!cardsEl) return;
+    cardsEl.querySelectorAll('.card-title').forEach(updateCardTitleFade);
+    cardsEl.querySelectorAll('.card-excerpt').forEach(updateCardExcerptFade);
+  }
+  if (cardsEl) {
+    cardsEl.querySelectorAll('.card-title').forEach(function (el) {
+      updateCardTitleFade(el);
+      el.addEventListener('scroll', function () { updateCardTitleFade(el); }, { passive: true });
+    });
+    cardsEl.querySelectorAll('.card-excerpt').forEach(function (el) {
+      updateCardExcerptFade(el);
+      el.addEventListener('scroll', function () { updateCardExcerptFade(el); }, { passive: true });
+    });
+    window.addEventListener('resize', refreshCardFades, { passive: true });
+    window.addEventListener('load', refreshCardFades);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshCardFades);
+  }
 });
 
 /* 阅读量异步填充：失败时保持隐藏，不显示假数据 */
