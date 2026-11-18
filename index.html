@@ -1367,7 +1367,8 @@ a{text-decoration:none}
     return JSON.parse(out);
   }
 
-  window.__siteDataReady = fetch('./data.jsonc', { cache: 'no-cache' })
+  /* 加时间戳 + 禁用缓存：data.jsonc 被 CDN 缓存时，改完配置要等很久才生效 */
+  window.__siteDataReady = fetch('./data.jsonc?v=' + Date.now(), { cache: 'no-store' })
     .then(function (r) {
       if (!r.ok) throw new Error('data.jsonc: HTTP ' + r.status);
       return r.text();
