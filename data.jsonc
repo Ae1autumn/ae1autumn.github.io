@@ -121,7 +121,7 @@
   ],
 
   "goatcounter": {
-    "code": "",
+    "code": "alipay",
     "pathPrefix": "/post/",
     "cacheKey": "ae_views_v1",
     "cacheTTL": 1800000
@@ -129,9 +129,9 @@
 
   "giscus": {
     "repo": "Ae1autumn/ae1autumn.github.io",
-    "repoId": "",
-    "category": "Comments",
-    "categoryId": "",
+    "repoId": "R_kgDOQzUe6Q",
+    "category": "Announcements",
+    "categoryId": "DIC_kwDOQzUe6c4DLcJO",
     "mapping": "specific",
     "strict": "1",
     "reactionsEnabled": "1",
