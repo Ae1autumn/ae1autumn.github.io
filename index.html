@@ -1398,6 +1398,17 @@ window.escapeHTML = function (value) {
   });
 };
 
+/* 文章元数据缺省值：标题 / 简介 / 日期缺失时显示占位，标签缺失时留白 */
+window.postValue = function (value, fallback) {
+  return value == null || String(value).trim() === '' ? fallback : value;
+};
+window.postTags = function (post) {
+  if (!post || !Array.isArray(post.tags)) return [];
+  return post.tags.filter(function (t) {
+    return t != null && String(t).trim() !== '';
+  });
+};
+
 window.__siteDataReady.then(function renderFeed() {
   var EYE = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
   var esc = window.escapeHTML;
@@ -1410,16 +1421,16 @@ window.__siteDataReady.then(function renderFeed() {
   });
 
   var html = feed.map(function (p) {
-    var tags = (p.tags || []).map(function (t) {
+    var tags = window.postTags(p).map(function (t) {
       return '<span class="card-tag">' + esc(t) + '</span>';
     }).join('');
     return '<article class="card" tabindex="0" role="link" data-slug="' + esc(p.slug) + '" data-src="' + esc(p.src) + '">' +
       (p.pin ? '<div class="card-corner" aria-hidden="true"></div>' : '') +
-      '<h2 class="card-title">' + esc(p.title) + '</h2>' +
+      '<h2 class="card-title">' + esc(window.postValue(p.title, 'Untitled')) + '</h2>' +
       '<div class="card-tags">' + tags + '</div>' +
-      '<p class="card-excerpt">' + esc(p.excerpt) + '</p>' +
+      '<p class="card-excerpt">' + esc(window.postValue(p.excerpt, 'Description')) + '</p>' +
       '<div class="card-meta">' +
-        '<span class="card-date">' + esc(p.date) + '</span>' +
+        '<span class="card-date">' + esc(window.postValue(p.date, 'Date')) + '</span>' +
         '<div class="card-stats">' +
           '<span class="card-stat card-views is-empty" data-views="' + esc(p.slug) + '" aria-label="阅读量">' +
             EYE + '<span class="views-num"></span>' +
@@ -2053,10 +2064,10 @@ window.__siteDataReady.then(function () {
   }
 
   function rankPost(c, mode, ql) {
-    if (mode === 'title') return matchRank(c.title, ql);
-    if (mode === 'date')  return matchRank(c.date, ql);
+    if (mode === 'title') return matchRank(window.postValue(c.title, 'Untitled'), ql);
+    if (mode === 'date')  return matchRank(window.postValue(c.date, 'Date'), ql);
     var best = -1;
-    (c.tags || []).forEach(function (t) {
+    window.postTags(c).forEach(function (t) {
       var r = matchRank(t, ql);
       if (r !== -1 && (best === -1 || r < best)) best = r;
     });
@@ -2092,17 +2103,18 @@ window.__siteDataReady.then(function () {
     resultsEl.classList.remove('hidden');
     list.forEach(function (c) {
       const b = document.createElement('button');
+      const tags = window.postTags(c);
       b.type = 'button';
       b.className = 'sm-result';
       b.setAttribute('role', 'option');
       b.innerHTML =
         '<div class="sm-result-top">' +
-          '<span class="sm-result-date">' + esc(c.date) + '</span>' +
+          '<span class="sm-result-date">' + esc(window.postValue(c.date, 'Date')) + '</span>' +
           '<span class="sm-result-sep" aria-hidden="true"></span>' +
-          ((c.tags || [])[0] ? '<span class="sm-result-tag">' + esc((c.tags || [])[0]) + '</span>' : '') +
+          (tags[0] ? '<span class="sm-result-tag">' + esc(tags[0]) + '</span>' : '') +
         '</div>' +
-        '<p class="sm-result-title">' + esc(c.title) + '</p>' +
-        '<p class="sm-result-excerpt">' + esc(c.excerpt) + '</p>' +
+        '<p class="sm-result-title">' + esc(window.postValue(c.title, 'Untitled')) + '</p>' +
+        '<p class="sm-result-excerpt">' + esc(window.postValue(c.excerpt, 'Description')) + '</p>' +
         '<div class="sm-result-foot" aria-hidden="true">→</div>';
       b.addEventListener('mousedown', function (e) { e.preventDefault(); });
       b.addEventListener('click', function () {
@@ -2892,7 +2904,7 @@ window.__siteDataReady.then(function () {
     currentSlug = slug; currentMeta = meta;
     closeAllPanels();
     syncBlurHeight();
-    postHeaderTitle.textContent = meta.title || '';
+    postHeaderTitle.textContent = window.postValue(meta.title, 'Untitled');
 
     postPage.classList.add('is-open');
     postPage.setAttribute('aria-hidden', 'false');
