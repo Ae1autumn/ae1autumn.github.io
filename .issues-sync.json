@@ -182,13 +182,30 @@
       },
       "slug": "issue-22",
       "updated_at": "2026-07-02T02:39:32Z"
+    },
+    "23": {
+      "body_sha256": "37665cfd6d3fe58023b7faaf4bc85ac7cf88c9e0618433f30899b87f4757f29a",
+      "file": "posts/issue-23.md",
+      "meta": {
+        "date": "2026-11-18",
+        "excerpt": "一切还得从你的数学试卷说起,期中的数学考试,你的数学有半张试卷没做 待到某天,你突然被老师叫去.他并没有说话,你第一次问\"怎么了\",没有应答.第二次你换了种语气,你问\"老师,请问叫我过来有什么事吗\".过了有一会他才慢慢说:你是不是该说些什么…",
+        "slug": "issue-23",
+        "src": "./posts/issue-23.md",
+        "tags": [
+          "记录"
+        ],
+        "title": "11.18"
+      },
+      "slug": "issue-23",
+      "updated_at": "2026-11-18T20:28:18Z"
     }
   },
   "label": "",
   "pages": {
     "https://api.github.com/repos/Ae1autumn/ae1autumn.github.io/issues?state=open&per_page=100&page=1&sort=created&direction=desc": {
-      "etag": "\"5f912e637ee409e340aac4e2f9180fb6983b790b045b8a81e0364b70e7b08b7b\"",
+      "etag": "\"6256463d6fbc7d2e35a60c0e8fc5587e67bad9c51829ab9879a879c4241afc79\"",
       "numbers": [
+        23,
         22,
         21,
         19,
