@@ -2490,6 +2490,11 @@ window.__siteDataReady.then(function () {
     headings = all.map(function (el) {
       return { el: el, level: parseInt(el.tagName[1], 10), text: el.textContent.trim() };
     });
+    /* 目录在文章加载期间就被打开时，标题建好后补渲染一次 */
+    if (openPanel === 'chapters') {
+      buildToc();
+      syncTocActive(true);
+    }
   }
   function getCurrentHeadings() {
     const containerTop = postContent.getBoundingClientRect().top;
@@ -3206,7 +3211,7 @@ window.__siteDataReady.then(function () {
     togglePanel('search');
   });
   chapWrap.addEventListener('click', function () {
-    if (guardFailed() || !headings.length) return;
+    if (guardFailed()) return;
     togglePanel('chapters');
   });
   btnFullscreen.addEventListener('click', function () {
@@ -3230,7 +3235,7 @@ window.__siteDataReady.then(function () {
     fsChapTapTimer = setTimeout(function () {
       fsChapTapTimer = null;
       fsChapLastTap = 0;
-      if (guardFailed() || !headings.length) return;
+      if (guardFailed()) return;
       togglePanel('chapters');
     }, 280);
   });
