@@ -3185,13 +3185,17 @@ window.__siteDataReady.then(function () {
     panelComments.style.height = '';
   }
 
-  /* 有内容后按内容撑开，最高为正文视口的 2/3，超出由 .cm-body 滚动 */
+  /* 有内容后按内容撑开，最高撑满正文可用区域（含四周间距，整体 100% 不溢出），
+     超出部分由 .cm-body 滚动 */
   function fitCommentsPanel() {
     const hostH = giscusHost.getBoundingClientRect().height;
     if (hostH <= 0) return;
     panelComments.classList.add('is-loaded');
     const headH = panelComments.querySelector('.panel-head').offsetHeight;
-    const maxH = Math.max(180, postContent.getBoundingClientRect().height * 2 / 3);
+    const rect = postContent.getBoundingClientRect();
+    const top = panelComments.getBoundingClientRect().top;
+    /* 面板顶端到正文视口底部，底部留一个 GAP，保证含边距正好占满 100% */
+    const maxH = Math.max(180, Math.min(rect.bottom, window.innerHeight) - top - GAP);
     const next = Math.max(180, Math.min(headH + hostH, maxH));
     const cur = parseFloat(panelComments.style.height);
     if (Number.isFinite(cur) && Math.abs(cur - next) < 1) return;
