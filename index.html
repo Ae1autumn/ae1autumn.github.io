@@ -2623,6 +2623,12 @@ window.__siteDataReady.then(function () {
   const fsUsed          = $('fs-used');
   const fsTimer         = $('fs-timer');
 
+  /* 标签页标题：打开文章时替换为文章标题，关闭后还原站点标题 */
+  const SITE_TITLE = document.title;
+  function setDocumentTitle(title) {
+    document.title = title || SITE_TITLE;
+  }
+
   let currentSlug = null, currentMeta = null;
   let rawMarkdown = '', loadFailed = false;
   let isEmptyPost = false;
@@ -3439,6 +3445,7 @@ window.__siteDataReady.then(function () {
     searchInput.value = '';
 
     currentSlug = slug; currentMeta = meta;
+    setDocumentTitle(String(window.postValue(meta && meta.title, 'Untitled')).trim());
     closeAllPanels();
     syncBlurHeight();
     postHeaderTitle.innerHTML = window.formatTitle(window.postValue(meta.title, 'Untitled'));
@@ -3586,6 +3593,7 @@ window.__siteDataReady.then(function () {
     try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
     currentSlug = null;
     contentReady = false;
+    setDocumentTitle();
   }
 
   document.addEventListener('visibilitychange', function () {
