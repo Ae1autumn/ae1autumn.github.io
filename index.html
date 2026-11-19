@@ -669,21 +669,6 @@ a{text-decoration:none}
 .post-content h5,.post-content h6{font-family:var(--font-display);font-weight:500;color:var(--text-2);margin:2rem 0 .8rem;scroll-margin-top:1rem;font-variant-numeric:lining-nums}
 .post-content h5{font-size:.95rem}
 .post-content h6{font-size:.88rem;color:var(--text-3)}
-/* 标题 hover 锚点：默认隐藏，hover / 键盘聚焦时出现；触屏常驻半透明 */
-.post-content .heading-anchor{
-  display:inline-block;margin-left:.32em;padding:0 .1em;
-  font-family:var(--font-mono);font-size:.7em;font-weight:400;line-height:1;
-  color:var(--accent);opacity:0;vertical-align:baseline;
-  user-select:none;-webkit-user-select:none;
-  transition:opacity .15s,color .15s;
-}
-.post-content .heading-anchor::before{content:"#"}
-.post-content .heading-anchor.is-copied{opacity:1;color:var(--success)}
-.post-content .heading-anchor.is-copied::before{content:"✓"}
-.post-content :is(h1,h2,h3,h4,h5,h6):hover .heading-anchor,
-.post-content :is(h1,h2,h3,h4,h5,h6):focus-within .heading-anchor,
-.post-content .heading-anchor:focus-visible{opacity:1}
-@media (hover:none){.post-content .heading-anchor{opacity:.45}}
 .post-content .table-wrap{
   overflow-x:auto;overflow-y:hidden;margin:0 0 1.2rem;
   border:var(--hairline) solid var(--border);border-radius:var(--radius);
@@ -2898,34 +2883,6 @@ window.__siteDataReady.then(function () {
       return { el: el, level: parseInt(el.tagName[1], 10), text: el.textContent.trim() };
     });
 
-    /* 所有标题（包括被跳过的文章标题）都挂 hover 锚点 */
-    all.forEach(function (el) {
-      if (!el.id || el.querySelector('.heading-anchor')) return;
-      const a = document.createElement('a');
-      a.className = 'heading-anchor';
-      a.href = headingShareUrl(el.id);
-      a.title = '复制本节链接';
-      a.setAttribute('aria-label', '复制本节链接');
-      a.addEventListener('click', function (e) {
-        /* 让 Ctrl/⌘/Shift/中键保持“新标签页打开链接”的原生行为 */
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button) return;
-        e.preventDefault();
-        e.stopPropagation();
-        copyText(a.href, function (ok) {
-          if (!ok) return;
-          a.classList.add('is-copied');
-          a.title = '链接已复制';
-          clearTimeout(a._copyTimer);
-          a._copyTimer = setTimeout(function () {
-            a.classList.remove('is-copied');
-            a.title = '复制本节链接';
-          }, 1400);
-        });
-        scrollToHeading(el.id, true);
-      });
-      el.appendChild(a);
-    });
-
     setChapterEmpty(!headings.length);
     /* 目录在文章加载期间就被打开时，标题建好后补渲染一次 */
     if (openPanel === 'chapters') {
@@ -2954,6 +2911,12 @@ window.__siteDataReady.then(function () {
     return parent
       ? { parent: parent.text, child: active.text, idx: idx }
       : { parent: active.text, child: '', idx: idx };
+  }
+  /* 当前判定线往上的最近章节 id：复用目录高亮那条线，
+     保证「复制的链接」和「高亮的章节」永远是同一节；线在最上方时返回空，调用方回退文章链接 */
+  function currentSectionId() {
+    const idx = getCurrentHeadings().idx;
+    return idx >= 0 && headings[idx] && headings[idx].el.id ? headings[idx].el.id : '';
   }
   /* 截断边缘渐隐：按可滚动余量双向切换。
      折叠动画中途 clientWidth≈0，此时一律清除渐隐，
@@ -3330,7 +3293,13 @@ window.__siteDataReady.then(function () {
     let text = '';
     if (kind === 'markdown') text = rawMarkdown;
     else if (kind === 'text') text = postContent.innerText;
-    else if (kind === 'link') text = window.location.origin + window.location.pathname + '#/post/' + currentSlug;
+    else if (kind === 'link') {
+      /* 优先复制当前章节的深链；还没到第一个标题时退回文章链接 */
+      const hid = currentSectionId();
+      text = hid
+        ? headingShareUrl(hid)
+        : window.location.origin + window.location.pathname + '#/post/' + currentSlug;
+    }
     copyText(text, function (ok) {
       if (!ok) return;
       const others = Array.prototype.filter.call(
@@ -3897,8 +3866,6 @@ window.__siteDataReady.then(function () {
 
     const a = t.closest('a[href]');
     if (!a) return;
-    /* 标题锚点自己处理：左键复制，修饰键/中键按原生链接打开 */
-    if (a.classList.contains('heading-anchor')) return;
     const raw = a.getAttribute('href');
     if (!raw || raw.charAt(0) === '#' || a.hasAttribute('download')) return;
 
