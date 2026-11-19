@@ -3440,13 +3440,12 @@ window.__siteDataReady.then(function () {
       postHeaderRow.classList.remove('is-loading');
       postHeaderRow.style.setProperty('--post-progress', '0%');
       fsChap.style.setProperty('--fs-progress', '0%');
-      postRead.textContent = '00';
+      setTimerError();
       postContent.classList.add('is-empty');
       postContent.innerHTML = '<p class="post-empty" role="status">很遗憾它似乎没有内容</p>';
       setPostControlsDisabled(true);
       refreshVFades();
       contentReady = true;
-      startTimer();
       return;
     }
 
@@ -3510,7 +3509,7 @@ window.__siteDataReady.then(function () {
   }
 
   document.addEventListener('visibilitychange', function () {
-    if (!currentSlug || loadFailed) return;
+    if (!currentSlug || loadFailed || isEmptyPost) return;
     const isLoading = postHeaderRow.classList.contains('is-loading');
     if (document.visibilityState === 'hidden') {
       pauseTimer();
