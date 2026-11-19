@@ -466,6 +466,10 @@ a{text-decoration:none}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
 }
 .post-timer{display:flex;align-items:center;gap:.32rem;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
+.post-timer.is-error{gap:0}
+.post-timer.is-error .post-timer-icon:first-of-type,
+.post-timer.is-error .post-timer-num,
+.post-timer.is-error .post-timer-sep{display:none}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
@@ -1241,7 +1245,7 @@ a{text-decoration:none}
   <div class="post-body">
     <div class="post-header-row" id="post-header-row">
       <span class="post-header-title" id="post-header-title"></span>
-      <div class="post-timer">
+      <div class="post-timer" id="post-timer">
         <svg class="post-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="10"/>
           <polyline id="post-clock-hand" points="12 6 12 12 16 14"/>
@@ -2521,6 +2525,7 @@ window.__siteDataReady.then(function () {
   const postHeaderTitle = $('post-header-title');
   const postContent     = $('post-content');
   const postToolbarRow  = $('post-toolbar-row');
+  const postTimer       = $('post-timer');
   const postUsed        = $('post-used');
   const postRead        = $('post-read');
   const chapWrap        = $('post-chapters-wrap');
@@ -2755,11 +2760,13 @@ window.__siteDataReady.then(function () {
     postRead.textContent = String(estimateReadMin(rawMarkdown)).padStart(2, '0');
   });
   function setTimerError() {
+    postTimer.classList.add('is-error');
     eyeOpen.style.display = 'none'; eyeClosed.style.display = '';
     clockHand.setAttribute('points', '12 6 12 12 12 12');
     setUsed('-'); postRead.textContent = '-';
   }
   function resetTimerNormal() {
+    postTimer.classList.remove('is-error');
     eyeOpen.style.display = ''; eyeClosed.style.display = 'none';
     clockHand.setAttribute('points', '12 6 12 12 16 14');
   }
