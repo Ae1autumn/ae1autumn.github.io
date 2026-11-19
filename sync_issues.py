@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""把 GitHub Issues 同步成本地 Markdown + data.jsonc 元数据。
+"""把 GitHub Issues 和本地 articles/ 下的 Markdown 同步成本地文章 + data.jsonc 元数据。
 
 工作方式
 --------
@@ -8,7 +8,8 @@
 2. 用 ETag 做增量：内容没变时 GitHub 返回 304，不重复下载，也不消耗配额。
 3. 每个 issue 生成一个 Markdown 文件（默认 posts/issue-<编号>.md）。
 4. issue 被删除（或关闭，且 --state=open）时，删除对应的 .md。
-5. 把元数据写进 data.jsonc 的 posts 数组；其余配置和注释保持不动。
+5. 读取同级 articles/ 目录里的 .md，处理后写入 posts/，和 issue 文章一起合并进 data.jsonc。
+6. 把元数据写进 data.jsonc 的 posts 数组；其余配置和注释保持不动。
 
 Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
 
@@ -16,18 +17,48 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
     <!-- excerpt: 显示在首页卡片上的一句话简介 -->
     <!-- date: 2025-11-04 -->
     <!-- pin: true -->
+    <!-- tags: 记录, 随笔 -->
 
 没有 excerpt 标记时，自动取正文第一段（去掉 Markdown、截断到 120 字）。
 标签（labels）会变成 tags；pin / pinned 标签等价于 pin: true。
+
+本地文章（articles/）
+--------------------
+    articles/某篇文章.md            → posts/某篇文章.md
+    articles/某篇文章.pin.md        → 置顶，输出为 posts/某篇文章.md
+
+- 文件名去掉 .md / .pin 后作为 slug（会自动 slugify）。
+- 带 .pin 后缀表示置顶。
+- 日期优先取状态文件里记录过的日期，其次取文件创建时间（Linux/CI 上取 git 首次提交日期），
+  也可以用 frontmatter 的 date 覆盖。
+- 标题取 frontmatter 的 title；没有则取正文第一个一级标题；再没有就用文件名。
+- 标签推荐写在文件开头的 frontmatter 里：
+
+    ---
+    title: 文章标题
+    date: 2026-11-19
+    tags: [记录, 随笔]
+    ---
+
+  不想用 frontmatter 的话，也可以像 issue 一样写在正文里：
+
+    <!-- tags: 记录, 随笔 -->
+
+  两种都写时会合并去重；两种都没写时 tags 为空。
 
 用法
 ----
     export GITHUB_TOKEN=ghp_xxx          # 也可以放 GH_TOKEN
     python3 blog/sync_issues.py --repo owner/repo --label post
 
+    # 只处理本地 articles/，不访问 GitHub
+    python3 sync_issues.py --no-issues
+
 常用参数
 --------
     --state open|all      只同步 open（默认）还是全部 issue
+    --articles-dir PATH   本地文章源目录，默认脚本同级的 articles/
+    --no-issues           跳过 GitHub，只处理 articles/
     --prune-unmanaged     删除 data.jsonc 里不由本脚本管理的旧文章（默认保留）
     --full                忽略 ETag，强制整页重新拉取
     --dry-run             只打印将要做的改动，不写文件
@@ -54,6 +85,8 @@ DEFAULT_API_BASE = "https://api.github.com"
 
 MARK_START = "// >>> issue-sync:posts:start"
 MARK_END = "// <<< issue-sync:posts:end"
+
+FRONTMATTER_RE = re.compile(r"\A---[ \t]*\n([\s\S]*?)\n---[ \t]*(?:\n|$)")
 
 DEFAULT_DATA = """{
   "posts": [
@@ -329,7 +362,7 @@ def marker(body, name):
 
 
 META_MARKER_RE = re.compile(
-    r"[ \t]*<!--\s*(?:slug|excerpt|date|pin)\s*:[\s\S]*?-->[ \t]*(?:\r?\n)?",
+    r"[ \t]*<!--\s*(?:slug|excerpt|date|pin|tags)\s*:[\s\S]*?-->[ \t]*(?:\r?\n)?",
     re.IGNORECASE,
 )
 
@@ -366,6 +399,190 @@ def auto_excerpt(body, max_chars=120):
     return text
 
 
+def clean_scalar(value):
+    value = str(value).strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1]
+    return value.strip()
+
+
+def parse_frontmatter(text):
+    """解析文件开头简单的 YAML frontmatter，返回 (字段 dict, 去掉 frontmatter 的正文)。"""
+    normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    m = FRONTMATTER_RE.match(normalized)
+    if not m:
+        return {}, text
+
+    data = {}
+    key = None
+    for line in m.group(1).splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        item = re.match(r"^-\s+(.*)$", stripped)
+        if item and key:
+            if not isinstance(data.get(key), list):
+                data[key] = []
+            data[key].append(clean_scalar(item.group(1)))
+            continue
+
+        kv = re.match(r"^([A-Za-z0-9_-]+)\s*:\s*(.*)$", stripped)
+        if not kv:
+            continue
+        key = kv.group(1).strip().lower()
+        value = kv.group(2).strip()
+        if not value:
+            data[key] = []
+        elif value.startswith("[") and value.endswith("]"):
+            inner = value[1:-1].strip()
+            data[key] = [
+                clean_scalar(part)
+                for part in re.split(r"[,，]", inner)
+                if clean_scalar(part)
+            ]
+        else:
+            data[key] = clean_scalar(value)
+    return data, normalized[m.end():]
+
+
+def parse_tag_list(value):
+    if isinstance(value, (list, tuple, set)):
+        parts = list(value)
+    else:
+        text = str(value or "").strip()
+        if text.startswith("[") and text.endswith("]"):
+            text = text[1:-1]
+        parts = re.split(r"[,，]", text)
+    tags = []
+    for part in parts:
+        tag = clean_scalar(part)
+        if tag and tag.lower() not in ("pin", "pinned"):
+            tags.append(tag)
+    return sorted(set(tags), key=str.lower)
+
+
+def first_heading(body):
+    for line in (body or "").splitlines():
+        m = re.match(r"^\s{0,3}#\s+(.+?)\s*#*\s*$", line)
+        if not m:
+            continue
+        title = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", m.group(1))
+        title = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", title)
+        title = re.sub(r"[*_`~]", "", title).strip()
+        if title:
+            return title
+    return ""
+
+
+def valid_date(value):
+    return bool(value and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(value).strip()))
+
+
+def git_first_add_date(path):
+    """从 git 历史里取该文件最早一次被添加的日期；拿不到就返回 None。"""
+    try:
+        out = subprocess.check_output(
+            [
+                "git", "-C", str(path.parent),
+                "log", "--follow", "--diff-filter=A",
+                "--format=%ad", "--date=short", "--", path.name,
+            ],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return None
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    return lines[-1] if lines else None
+
+
+def file_created_date(path):
+    """文件创建日期。
+
+    有 birthtime 的平台直接用它；Linux / CI 上通常没有，退回 git 首次提交日期；
+    文件还没提交时再用 st_ctime。
+    """
+    st = path.stat()
+    ts = getattr(st, "st_birthtime", None)
+    if ts is not None:
+        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+    git_date = git_first_add_date(path)
+    if git_date:
+        return git_date
+    return datetime.fromtimestamp(st.st_ctime).strftime("%Y-%m-%d")
+
+
+def allocate_slug(base, used):
+    slug = base
+    n = 2
+    while slug in used:
+        slug = f"{base}-{n}"
+        n += 1
+    return slug
+
+
+def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, excerpt_length=120):
+    """把 articles/ 里的一个 md 转换成 (元数据 dict, Markdown 文本, 文件相对路径, 源文本)。"""
+    raw = read_text(src_path)
+    front, body_raw = parse_frontmatter(raw)
+    md_text = clean_body(body_raw)
+
+    stem = src_path.name
+    if stem.lower().endswith(".md"):
+        stem = stem[:-3]
+    pin = stem.lower().endswith(".pin")
+    if pin:
+        stem = stem[:-4]
+
+    base_slug = slugify(front.get("slug") or stem)
+    if not base_slug:
+        base_slug = "article-" + sha256_text(src_rel)[:8]
+    slug = allocate_slug(base_slug, used_slugs)
+    used_slugs.add(slug)
+
+    old = state["articles"].get(src_rel) or {}
+    date = str(front.get("date") or "").strip()
+    if not valid_date(date):
+        date = str(old.get("date") or "").strip()
+    if not valid_date(date):
+        date = file_created_date(src_path)
+
+    title = str(front.get("title") or "").strip()
+    title = title or first_heading(md_text) or stem
+
+    tags = sorted(
+        set(parse_tag_list(front.get("tags")))
+        | set(parse_tag_list(marker(body_raw, "tags"))),
+        key=str.lower,
+    )
+
+    excerpt_value = front.get("excerpt")
+    if isinstance(excerpt_value, (list, tuple)):
+        excerpt_value = " ".join(str(v) for v in excerpt_value)
+    excerpt = str(excerpt_value or "").strip()
+    if not excerpt:
+        excerpt = str(marker(body_raw, "excerpt") or "").strip()
+    if not excerpt:
+        excerpt = auto_excerpt(md_text, excerpt_length)
+    excerpt = re.sub(r"\s+", " ", excerpt).strip()
+
+    rel = os.path.relpath(posts_dir / f"{slug}.md", data_dir).replace(os.sep, "/")
+    src = rel if rel.startswith(".") else "./" + rel
+
+    meta = {
+        "slug": slug,
+        "title": title,
+        "date": date,
+        "tags": tags,
+        "excerpt": excerpt,
+        "src": src,
+    }
+    if pin:
+        meta["pin"] = True
+    return meta, md_text, rel, raw
+
+
 def issue_to_post(issue, args, state, data_dir, posts_dir):
     """把一个 issue 转换成 (元数据 dict, Markdown 文本, 文件相对路径)。"""
     number = int(issue["number"])
@@ -398,10 +615,12 @@ def issue_to_post(issue, args, state, data_dir, posts_dir):
     pin = pin or any(l.lower() in ("pin", "pinned") for l in labels)
 
     post_label = (args.label or "").lower()
-    tags = sorted(
-        {l for l in labels if l.lower() != post_label and l.lower() not in ("pin", "pinned")},
-        key=str.lower,
-    )
+    tags = {
+        l for l in labels
+        if l.lower() != post_label and l.lower() not in ("pin", "pinned")
+    }
+    tags.update(parse_tag_list(marker(body, "tags")))
+    tags = sorted(tags, key=str.lower)
 
     md_text = clean_body(body)
     excerpt_marker = marker(body, "excerpt")
@@ -445,6 +664,78 @@ def remove_managed_file(rel_path, base_dir, posts_dir, dry_run=False):
     else:
         target.unlink()
         log(f"  删除 {target}")
+
+
+# ─────────────────────────── articles/ → 元数据 ───────────────────────────
+
+def sync_articles(articles_dir, state, data_dir, posts_dir, used_slugs, dry_run=False, excerpt_length=120):
+    """读取 articles/ 下的 .md，写入 posts/，返回 (元数据列表, 写入数, 未变数, 删除数)。"""
+    posts = []
+    if articles_dir is None:
+        return posts, 0, 0, 0
+    if not articles_dir.exists():
+        log(f"文章源目录不存在，跳过：{articles_dir}")
+        return posts, 0, 0, 0
+
+    sources = []
+    for path in articles_dir.rglob("*.md"):
+        if not path.is_file():
+            continue
+        rel_parts = path.relative_to(articles_dir).parts
+        if any(part.startswith(".") for part in rel_parts):
+            continue
+        sources.append(path)
+    sources.sort(key=lambda p: p.relative_to(articles_dir).as_posix().lower())
+
+    written = unchanged = removed = 0
+    seen = set()
+    for src_path in sources:
+        src_rel = src_path.relative_to(articles_dir).as_posix()
+        seen.add(src_rel)
+
+        meta, md_text, rel, raw = article_to_post(
+            src_path, src_rel, state, data_dir, posts_dir, used_slugs, excerpt_length
+        )
+        target = data_dir / rel
+        body_hash = sha256_text(md_text)
+        old = state["articles"].get(src_rel) or {}
+        need_write = (
+            old.get("file") != rel
+            or old.get("body_sha256") != body_hash
+            or not target.exists()
+        )
+
+        if need_write:
+            if dry_run:
+                log(f"  [dry-run] 写入 {target}")
+            else:
+                atomic_write(target, md_text)
+                log(f"  写入 {target}")
+            written += 1
+        else:
+            unchanged += 1
+
+        old_file = old.get("file")
+        if old_file and old_file != rel:
+            remove_managed_file(old_file, data_dir, posts_dir, dry_run)
+
+        state["articles"][src_rel] = {
+            "file": rel,
+            "slug": meta["slug"],
+            "date": meta["date"],
+            "body_sha256": body_hash,
+            "source_sha256": sha256_text(raw),
+            "meta": meta,
+        }
+        posts.append(normalize_post(meta))
+
+    for src_rel in sorted(set(state["articles"]) - seen):
+        info = state["articles"].pop(src_rel) or {}
+        log(f"文章已删除：{src_rel}：{info.get('file', '')}")
+        remove_managed_file(info.get("file"), data_dir, posts_dir, dry_run)
+        removed += 1
+
+    return posts, written, unchanged, removed
 
 
 # ─────────────────────────── GitHub API ───────────────────────────
@@ -586,7 +877,7 @@ def load_state(path, repo):
             state = json.loads(read_text(path))
         except json.JSONDecodeError as exc:
             fail(f"状态文件解析失败：{path}：{exc}")
-        if state.get("repo") and state["repo"] != repo:
+        if repo and state.get("repo") and state["repo"] != repo:
             fail(
                 f"状态文件属于 {state['repo']}，与 --repo {repo} 不一致；"
                 "请换一个 --state-file，避免误删另一个仓库的文件"
@@ -594,9 +885,13 @@ def load_state(path, repo):
     else:
         state = {}
     state.setdefault("version", 1)
-    state.setdefault("repo", repo)
+    if repo:
+        state["repo"] = repo
+    else:
+        state.setdefault("repo", "")
     state.setdefault("pages", {})
     state.setdefault("issues", {})
+    state.setdefault("articles", {})
     return state
 
 
@@ -615,12 +910,13 @@ def save_state(path, state, old_text, dry_run=False):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="把 GitHub Issues 同步成 Markdown 文件和 data.jsonc 元数据",
+        description="把 GitHub Issues 和 articles/ 下的 Markdown 同步成文章和 data.jsonc 元数据",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "示例：\n"
             "  export GITHUB_TOKEN=ghp_xxx\n"
             "  python3 blog/sync_issues.py --repo owner/repo --label post\n"
+            "  python3 sync_issues.py --no-issues\n"
         ),
     )
     parser.add_argument("--repo", default=detect_repo(), help="owner/repo，默认从 git remote 推断")
@@ -630,9 +926,15 @@ def build_parser():
     parser.add_argument("--api-base", default=DEFAULT_API_BASE, help="API 地址，GitHub Enterprise 可改")
     parser.add_argument("--data-file", default=str(SCRIPT_DIR / "data.jsonc"), help="data.jsonc 路径")
     parser.add_argument("--posts-dir", default=str(SCRIPT_DIR / "posts"), help="Markdown 输出目录")
+    parser.add_argument(
+        "--articles-dir",
+        default=str(SCRIPT_DIR / "articles"),
+        help="本地文章源目录；传空字符串可禁用",
+    )
     parser.add_argument("--state-file", default=str(SCRIPT_DIR / ".issues-sync.json"), help="增量状态文件")
     parser.add_argument("--excerpt-length", type=int, default=120, help="自动简介的最大字数")
-    parser.add_argument("--prune-unmanaged", action="store_true", help="删除 posts 里不是由 issues 管理的旧文章")
+    parser.add_argument("--no-issues", action="store_true", help="跳过 GitHub，只处理 articles/")
+    parser.add_argument("--prune-unmanaged", action="store_true", help="删除 posts 里不是由本脚本管理的旧文章")
     parser.add_argument("--full", action="store_true", help="忽略 ETag，强制重新拉取")
     parser.add_argument("--dry-run", action="store_true", help="只打印改动，不写文件")
     return parser
@@ -640,41 +942,61 @@ def build_parser():
 
 def main():
     args = build_parser().parse_args()
-    if not args.repo:
-        fail("缺少 --repo；例如 --repo Ae1autumn/Temps")
-    args.repo = re.sub(r"\.git$", "", args.repo.strip())
+    if not args.no_issues and not args.repo:
+        fail("缺少 --repo；例如 --repo Ae1autumn/Temps，或加 --no-issues 只处理本地文章")
+    args.repo = re.sub(r"\.git$", "", (args.repo or "").strip())
+    if args.no_issues:
+        args.repo = ""
     args.label = (args.label or "").strip()
     args.api_base = args.api_base.rstrip("/")
 
     data_file = Path(args.data_file).resolve()
     posts_dir = Path(args.posts_dir).resolve()
     state_file = Path(args.state_file).resolve()
+    articles_dir = Path(args.articles_dir).resolve() if (args.articles_dir or "").strip() else None
     data_dir = data_file.parent
 
-    if not args.token:
+    if not args.no_issues and not args.token:
         log("提示：没有 GITHUB_TOKEN，未认证请求限流为 60 次/小时")
 
-    log(f"仓库：{args.repo}")
+    if args.repo:
+        log(f"仓库：{args.repo}")
+    else:
+        log("仓库：已跳过（--no-issues）")
     log(f"数据：{data_file}")
-    log(f"文章目录：{posts_dir}")
+    log(f"文章输出目录：{posts_dir}")
+    if articles_dir is not None:
+        log(f"本地文章目录：{articles_dir}")
 
     state = load_state(state_file, args.repo)
     old_state_text = read_text(state_file) if state_file.exists() else ""
-    if state.get("label") is not None and state.get("label") != args.label:
-        log("提示：--label 与上次不同，不在新列表里的旧 issue 会被删除")
-    if state.get("api_state") is not None and state.get("api_state") != args.state:
-        log("提示：--state 与上次不同，状态不同的 issue 会被增删")
+    if not args.no_issues:
+        if state.get("label") is not None and state.get("label") != args.label:
+            log("提示：--label 与上次不同，不在新列表里的旧 issue 会被删除")
+        if state.get("api_state") is not None and state.get("api_state") != args.state:
+            log("提示：--state 与上次不同，状态不同的 issue 会被增删")
+    # 本次运行实际由脚本管理的 slug（含刚被删掉的旧条目），用于阻止旧条目从 data.jsonc
+    # 被当成“手工文章”又保留下来。
     managed_slugs = {info.get("slug") for info in state["issues"].values() if info.get("slug")}
+    managed_slugs.update(
+        info.get("slug") for info in state["articles"].values() if info.get("slug")
+    )
 
-    log("拉取 issues：")
-    current, pending = fetch_issues(args.api_base, args.repo, args, args.token, state)
+    if args.no_issues:
+        log("跳过 issues 同步：")
+        current = set(int(n) for n in state["issues"])
+        pending = {}
+        deleted_numbers = []
+    else:
+        log("拉取 issues：")
+        current, pending = fetch_issues(args.api_base, args.repo, args, args.token, state)
 
-    # 1) 删除已消失的 issue 对应的文件
-    deleted_numbers = sorted(set(int(n) for n in state["issues"]) - current)
-    for number in deleted_numbers:
-        info = state["issues"].pop(str(number), None) or {}
-        log(f"issue #{number} 已删除/关闭：{info.get('file', '')}")
-        remove_managed_file(info.get("file"), data_dir, posts_dir, args.dry_run)
+        # 1) 删除已消失的 issue 对应的文件
+        deleted_numbers = sorted(set(int(n) for n in state["issues"]) - current)
+        for number in deleted_numbers:
+            info = state["issues"].pop(str(number), None) or {}
+            log(f"issue #{number} 已删除/关闭：{info.get('file', '')}")
+            remove_managed_file(info.get("file"), data_dir, posts_dir, args.dry_run)
 
     # 2) 新增 / 更新
     written = unchanged = 0
@@ -715,7 +1037,16 @@ def main():
             "meta": meta,
         }
 
-    # 3) 合并 posts：issues 生成的 + 手工保留的
+    # 3) 本地 articles/：写入 posts/ 并生成元数据
+    # 分配 slug 时只避开当前 issue，不避开旧文章自己的 slug，否则每次运行都会被重命名。
+    used_slugs = {info.get("slug") for info in state["issues"].values() if info.get("slug")}
+    article_posts, article_written, article_unchanged, article_removed = sync_articles(
+        articles_dir, state, data_dir, posts_dir, used_slugs,
+        args.dry_run, args.excerpt_length,
+    )
+    managed_slugs.update(post.get("slug") for post in article_posts if post.get("slug"))
+
+    # 4) 合并 posts：issues 生成的 + 本地文章 + 手工保留的
     managed_posts = []
     for number in current:
         info = state["issues"].get(str(number))
@@ -723,6 +1054,7 @@ def main():
             managed_posts.append(normalize_post(info["meta"]))
         else:
             log(f"  警告：issue #{number} 缺少本地元数据，本次跳过；可加 --full 重新拉取")
+    managed_posts.extend(article_posts)
 
     if data_file.exists():
         data_text = read_text(data_file)
@@ -731,10 +1063,22 @@ def main():
         data_text = DEFAULT_DATA
         existing_posts = []
 
+    manual_slugs = {p.get("slug") for p in existing_posts if p.get("manual")}
+    for post in managed_posts:
+        if post.get("slug") in manual_slugs:
+            log(
+                f"  警告：{post['slug']} 与 manual: true 的手工文章重名，"
+                "首页可能出现重复；迁移到 articles/ 后请删除旧的手工条目"
+            )
+
     if args.prune_unmanaged:
         unmanaged = []
     else:
-        unmanaged = [p for p in existing_posts if p.get("slug") not in managed_slugs]
+        # manual: true 的文章手工放在同步标记外，跨同步保留，不参与合并，避免重复
+        unmanaged = [
+            p for p in existing_posts
+            if p.get("slug") not in managed_slugs and not p.get("manual")
+        ]
 
     combined = []
     seen = set()
@@ -766,18 +1110,24 @@ def main():
     else:
         log("  data.jsonc 无变化")
 
-    # 4) 保存状态
-    state["label"] = args.label
-    state["api_state"] = args.state
+    # 5) 保存状态
+    if not args.no_issues:
+        state["label"] = args.label
+        state["api_state"] = args.state
     state_changed = save_state(state_file, state, old_state_text, args.dry_run)
 
     suffix = "（dry-run）" if args.dry_run else ""
     log(
-        "完成：新增/更新文件 {}{}，未变 {}，删除 issue {}，jsonc {}，state {}".format(
+        "完成：issue 新增/更新 {}{}，未变 {}，删除 {}；"
+        "文章新增/更新 {}{}，未变 {}，删除 {}；jsonc {}，state {}".format(
             written,
             suffix,
             unchanged,
             len(deleted_numbers),
+            article_written,
+            suffix,
+            article_unchanged,
+            article_removed,
             ("已更新" if data_changed else "无变化") + suffix,
             ("已更新" if state_changed else "无变化") + suffix,
         )
