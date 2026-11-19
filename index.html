@@ -2238,8 +2238,8 @@ window.__siteDataReady.then(function hydrateViews() {
     }
   }
   btn.addEventListener('click', function () {
-    /* 与文章页互斥：打开菜单前先让文章页收起 */
-    if (!open) document.dispatchEvent(new CustomEvent('site-menu-open'));
+    /* 与文章页互斥：打开菜单前先复用文章页的关闭逻辑 */
+    if (!open && window.closePostPage) window.closePostPage();
     set(!open);
   });
   overlay.addEventListener('click', function (e) {
@@ -2247,8 +2247,8 @@ window.__siteDataReady.then(function hydrateViews() {
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open) set(false); });
 
-  /* 文章页打开时收起菜单，且不把焦点抢回被遮住的菜单按钮 */
-  document.addEventListener('site-post-open', function () { set(false, false); });
+  /* 供文章页复用：关闭菜单时可指定是否把焦点还给菜单按钮 */
+  window.closeSiteMenu = function (restoreFocus) { set(false, restoreFocus); };
 
 })();
 
@@ -3430,9 +3430,6 @@ window.__siteDataReady.then(function () {
     });
   });
 
-  /* 与汉堡菜单互斥：菜单展开时关闭文章页 */
-  document.addEventListener('site-menu-open', function () { if (currentSlug) closePost(); });
-
   async function openPost(slug, meta) {
     const token = ++postLoadToken;
     clearTimeout(closePostTimer);
@@ -3463,7 +3460,7 @@ window.__siteDataReady.then(function () {
     postPage.classList.add('is-open');
     postPage.setAttribute('aria-hidden', 'false');
     postPage.inert = false;
-    document.dispatchEvent(new CustomEvent('site-post-open'));
+    if (window.closeSiteMenu) window.closeSiteMenu(false);
     if (!postScrollLocked) {
       window.lockBackgroundScroll();
       postScrollLocked = true;
@@ -3606,6 +3603,9 @@ window.__siteDataReady.then(function () {
     contentReady = false;
     setDocumentTitle();
   }
+
+  /* 供菜单复用：菜单展开时直接关闭文章页 */
+  window.closePostPage = closePost;
 
   document.addEventListener('visibilitychange', function () {
     if (!currentSlug || loadFailed || isEmptyPost) return;
