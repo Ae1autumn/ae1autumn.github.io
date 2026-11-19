@@ -645,49 +645,63 @@ a{text-decoration:none}
 .post-content pre{background:var(--surface);border:var(--hairline) solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem;overflow-x:auto;margin:0 0 1.2rem}
 .post-content pre code{background:none;border:none;padding:0;border-radius:0}
 
-/* 代码块折叠：高度超过正文视口的 <pre> 才会被包进 .code-block，短代码块保持原样 */
+/* 代码块折叠：高度超过正文容器的 <pre> 才会被包进 .code-block，短代码块保持原样 */
 .post-content .code-block{
+  position:relative;
   margin:0 0 1.2rem;border:var(--hairline) solid var(--border);border-radius:var(--radius);
   background:var(--surface);overflow:hidden;
+  transition:border-color .18s,background-color .18s;
 }
+.post-content .code-block.is-collapsed{cursor:pointer}
 .post-content .code-block pre{margin:0;border:none;border-radius:0;background:none}
+/* 头栏与站内控件同一套高度与间距 */
 .post-content .code-head{
-  display:flex;align-items:center;padding:.2rem .45rem .2rem .3rem;
+  display:flex;align-items:center;justify-content:space-between;gap:var(--panel-gap);
+  height:var(--control-h);padding:0 var(--panel-gap);
   border-bottom:var(--hairline) solid var(--border);
-  font-family:var(--font-mono);font-size:.68rem;line-height:1.7;color:var(--text-3);
-  user-select:none;-webkit-user-select:none;
+  font-family:var(--font-mono);font-size:.72rem;line-height:1;color:var(--text-3);
+  cursor:pointer;user-select:none;-webkit-user-select:none;
 }
 .post-content .code-toggle{
-  display:flex;align-items:center;gap:.22rem;padding:.1rem .3rem;border-radius:5px;
-  font:inherit;letter-spacing:.04em;color:var(--text-2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:24px;height:24px;margin-left:-5px;border-radius:var(--radius-sm);
+  color:var(--text-2);
   transition:color .18s,background-color .18s;
 }
 .post-content .code-toggle:hover{color:var(--accent);background:color-mix(in srgb,var(--border) 45%,transparent)}
 .post-content .code-chevron{
-  width:11px;height:11px;flex-shrink:0;
-  stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
-  transition:transform .22s;
+  width:13px;height:13px;fill:currentColor;
+  transition:transform .22s var(--ease-out);
 }
 .post-content .code-block:not(.is-collapsed) .code-chevron{transform:rotate(90deg)}
-.post-content .code-lines{color:var(--text-3);letter-spacing:.03em}
-.post-content .code-lines::before{content:"-";margin:0 .42rem;opacity:.6}
+.post-content .code-meta{display:flex;align-items:center;gap:.38rem;letter-spacing:.03em;white-space:nowrap}
+.post-content .code-lines{color:var(--text-3)}
+.post-content .code-sep{opacity:.5}
 .post-content .code-lang{
-  margin-left:auto;min-width:2.8rem;padding:.04rem .45rem;
-  border:var(--hairline) solid var(--border);border-radius:5px;
-  font:inherit;font-size:.62rem;letter-spacing:.06em;text-align:center;color:var(--text-3);
-  background:color-mix(in srgb,var(--bg) 55%,transparent);
-  transition:color .18s,border-color .18s,background-color .18s;
+  padding:0;border:none;background:none;
+  font:inherit;letter-spacing:inherit;color:var(--text-2);
+  transition:color .18s;
 }
-.post-content .code-lang:hover{
-  color:var(--accent);border-color:color-mix(in srgb,var(--accent) 48%,var(--border));
+.post-content .code-lang:hover{color:var(--accent)}
+/* 复制成功：整块转绿，中央对勾，2s 后恢复（配色复用 --success） */
+.post-content .code-block.is-copied{
+  border-color:color-mix(in srgb,var(--success) 62%,transparent);
+  background:color-mix(in srgb,var(--success) 28%,var(--surface));
 }
-.post-content .code-lang.is-copied{color:var(--accent);border-color:var(--accent)}
+.post-content .code-check{
+  position:absolute;inset:0;z-index:1;
+  display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb,var(--success) 28%,var(--surface));
+  color:var(--success);opacity:0;pointer-events:none;
+  transition:opacity .16s;
+}
+.post-content .code-block.is-copied .code-check{opacity:1}
+.post-content .code-check svg{
+  width:26px;height:26px;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
 .post-content .code-body{position:relative}
-.post-content .code-block.is-collapsed .code-body{max-height:var(--code-peek,42vh);overflow:hidden}
-.post-content .code-block.is-collapsed.is-cropped .code-body::after{
-  content:"";position:absolute;left:0;right:0;bottom:0;height:3.4rem;pointer-events:none;
-  background:linear-gradient(to top,var(--surface) 8%,transparent);
-}
+.post-content .code-block.is-collapsed .code-body{max-height:var(--code-peek,1.7rem);overflow:hidden}
 .post-content blockquote{border-left:var(--hairline) solid var(--accent);margin:1.2rem 0;padding:.4rem 0 .4rem 1.1rem;color:var(--text-3)}
 .post-content blockquote p{margin-bottom:.5rem}
 .post-content a{color:var(--accent)}
@@ -2059,27 +2073,29 @@ window.__siteDataReady.then(function hydrateViews() {
 
   /* 渲染后处理：长代码块折叠。
      判定方式：插入 DOM 后直接量 <pre> 的最终高度，与正文滚动容器的可视高度
-     比较；超过视口才折叠。不用猜行数，字体行高/高亮都由浏览器算好。
+     比较；超过容器才折叠。不用猜行数，字体行高/高亮都由浏览器算好。
      手动覆盖：info string 写 collapse / expand。 */
+  var CODE_TRIANGLE = '<svg class="code-chevron" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M11.79 8.28 15.42 9.85a2.5 2.5 0 0 1 0 4.3l-3.63 1.57a2.5 2.5 0 0 1-3.79-2.14v-3.16a2.5 2.5 0 0 1 3.79-2.14Z"/></svg>';
+  var CODE_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+
   function setCodeCollapsed(block, collapsed) {
     block.classList.toggle('is-collapsed', collapsed);
-    block.classList.toggle('is-cropped', collapsed &&
-      parseInt(block.getAttribute('data-natural-height'), 10) >
-      (parseFloat(block.style.getPropertyValue('--code-peek')) || 0) + 1);
     var toggle = block.querySelector('.code-toggle');
-    var label = block.querySelector('.code-toggle-label');
-    if (toggle) toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    if (label) label.textContent = collapsed ? '展开' : '收起';
+    if (!toggle) return;
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggle.setAttribute('aria-label', collapsed ? '展开代码' : '收起代码');
   }
 
+  /* 折叠后只露一行代码：量出 pre 的上内边距 + 文字行高 */
   function applyCodePeek(block) {
-    var viewport = block._codeViewport;
-    var viewportH = (viewport && viewport.clientHeight) || window.innerHeight || 0;
-    var naturalH = parseInt(block.getAttribute('data-natural-height'), 10) || 0;
-    var peek = Math.max(120, Math.round(viewportH * 0.5));
-    if (naturalH && peek > naturalH) peek = naturalH;
-    block.style.setProperty('--code-peek', peek + 'px');
-    if (block.classList.contains('is-collapsed')) setCodeCollapsed(block, true);
+    var pre = block.querySelector('pre');
+    var code = block.querySelector('code');
+    var cs = window.getComputedStyle(code || pre);
+    var lineH = parseFloat(cs.lineHeight);
+    if (!lineH) lineH = (parseFloat(cs.fontSize) || 12) * 1.5;
+    var padTop = pre ? parseFloat(window.getComputedStyle(pre).paddingTop) || 0 : 0;
+    block.style.setProperty('--code-peek', Math.round(padTop + lineH) + 'px');
   }
 
   window.refreshCodeBlockPeeks = function () {
@@ -2100,52 +2116,67 @@ window.__siteDataReady.then(function hydrateViews() {
       var flag = pre.getAttribute('data-code-flag') || '';
       var naturalH = pre.getBoundingClientRect().height;
       var auto = naturalH > viewportH;
-      if (!flag && !auto) continue; /* 没超过视口的普通代码块保持原样 */
+      if (!flag && !auto) continue; /* 没超过容器的普通代码块保持原样 */
 
       var codeEl = pre.querySelector('code');
-      let lang = pre.getAttribute('data-code-lang') || '';
       let codeText = codeEl ? codeEl.textContent : pre.textContent;
       var lineCount = codeText.replace(/\n$/, '').split('\n').length;
+      var lang = pre.getAttribute('data-code-lang') || '';
 
       let block = document.createElement('div');
       block.className = 'code-block';
-      block.setAttribute('data-natural-height', String(Math.round(naturalH)));
-      block._codeViewport = root;
 
       var head = document.createElement('div');
       head.className = 'code-head';
 
+      /* 图标只是视觉提示，点击整个块都能切换；按钮本身保留键盘可达性 */
       let toggle = document.createElement('button');
       toggle.type = 'button';
       toggle.className = 'code-toggle';
-      toggle.innerHTML = '<svg class="code-chevron" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path d="M9 6l6 6-6 6"/></svg><span class="code-toggle-label"></span>';
+      toggle.innerHTML = CODE_TRIANGLE;
+
+      var meta = document.createElement('span');
+      meta.className = 'code-meta';
 
       var lines = document.createElement('span');
       lines.className = 'code-lines';
-      lines.textContent = lineCount + ' 行';
+      lines.textContent = lineCount + ' Lines';
+
+      var sep = document.createElement('span');
+      sep.className = 'code-sep';
+      sep.textContent = '-';
 
       let langBtn = document.createElement('button');
       langBtn.type = 'button';
       langBtn.className = 'code-lang';
-      langBtn.textContent = lang || 'text';
-      langBtn.title = '点击复制代码';
+      langBtn.textContent = lang || 'Text';
+      langBtn.title = '复制代码';
       langBtn.setAttribute('aria-label', '复制代码');
-      let langLabel = langBtn.textContent;
 
+      meta.appendChild(lines);
+      meta.appendChild(sep);
+      meta.appendChild(langBtn);
       head.appendChild(toggle);
-      head.appendChild(lines);
-      head.appendChild(langBtn);
+      head.appendChild(meta);
 
       var body = document.createElement('div');
       body.className = 'code-body';
+
+      var check = document.createElement('span');
+      check.className = 'code-check';
+      check.innerHTML = CODE_CHECK;
 
       parent.insertBefore(block, pre);
       body.appendChild(pre);
       block.appendChild(head);
       block.appendChild(body);
+      block.appendChild(check);
 
-      toggle.addEventListener('click', function () {
+      block.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && t.closest && (t.closest('.code-lang') || t.closest('a'))) return;
+        var sel = window.getSelection ? window.getSelection() : null;
+        if (sel && sel.rangeCount && !sel.isCollapsed) return;
         setCodeCollapsed(block, !block.classList.contains('is-collapsed'));
         if (window.refreshPostLayout) window.refreshPostLayout();
       });
@@ -2154,13 +2185,11 @@ window.__siteDataReady.then(function hydrateViews() {
       langBtn.addEventListener('click', function () {
         function done(ok) {
           if (!ok) return;
-          langBtn.classList.add('is-copied');
-          langBtn.textContent = '已复制';
+          block.classList.add('is-copied');
           clearTimeout(copyTimer);
           copyTimer = setTimeout(function () {
-            langBtn.classList.remove('is-copied');
-            langBtn.textContent = langLabel;
-          }, 1200);
+            block.classList.remove('is-copied');
+          }, 2000);
         }
         if (window.copyText) { window.copyText(codeText, done); return; }
         if (navigator.clipboard && window.isSecureContext) {
@@ -2173,7 +2202,7 @@ window.__siteDataReady.then(function hydrateViews() {
     }
   }
 
-  /* 视口变化时只更新折叠高度，不改变已经做出的“折/不折”判断，避免阅读中自动弹开 */
+  /* 窗口缩放后重新量取一行的高度；不改变已经做出的“折/不折”判断 */
   var peekRaf = 0;
   window.addEventListener('resize', function () {
     if (peekRaf) return;
