@@ -885,6 +885,7 @@ a{text-decoration:none}
 .search-field{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-bottom:var(--hairline) solid var(--border);flex-shrink:0}
 .search-field svg{width:14px;height:14px;stroke:var(--text-3);fill:none;stroke-width:1.5;stroke-linecap:round;flex-shrink:0}
 .search-input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:var(--font-body);font-size:.88rem;color:var(--text)}
+.search-input::-webkit-search-cancel-button{display:none;-webkit-appearance:none}
 .search-input::placeholder{color:var(--text-3)}
 .search-meta{
   display:flex;align-items:center;justify-content:space-between;
@@ -2008,7 +2009,10 @@ window.__siteDataReady.then(function hydrateViews() {
     if (locks++ > 0) return;
     /* 只锁定滚动，不移动页面：关闭文章时首页位置保持原样，不再被拉回 */
     document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+    /* body 不能用 hidden：hidden 会让 body 变成新的滚动容器，
+       position:sticky 的标题栏改为相对 body 定位，页面滚动后会被顶出视口；
+       clip 不创建滚动容器，既锁住背景滚动，又不破坏 sticky。 */
+    document.body.style.overflow = 'clip';
   };
   window.unlockBackgroundScroll = function () {
     if (!locks || --locks > 0) return;
