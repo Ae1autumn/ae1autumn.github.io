@@ -323,12 +323,12 @@ a{text-decoration:none}
 .card-title.fade-l.fade-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
 /* 标题里的数字改用正文字体，避免显示字体的旧式数字 */
 .title-num{font-family:var(--font-body);font-variant-numeric:lining-nums}
-.card-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.6rem}
+.card-tags{display:flex;flex-wrap:nowrap;gap:.4rem;margin-bottom:0;min-width:0;overflow-x:auto}
 .card-tag{
   font-family:var(--font-mono);font-size:.68rem;letter-spacing:.05em;
   color:var(--text-2);background:var(--bg);
   border:var(--hairline) solid var(--border);border-radius:6px;
-  padding:.14rem .5rem;
+  padding:.14rem .5rem;flex-shrink:0;
 }
 .card-excerpt{
   font-size:.88rem;color:var(--text-2);
@@ -340,9 +340,9 @@ a{text-decoration:none}
   padding:1.4rem 0;font-size:.85rem;color:var(--text-3);
   text-align:center;
 }
-.card-meta{display:flex;align-items:center;justify-content:space-between}
-.card-date{font-family:var(--font-mono);font-size:.74rem;color:var(--text-3);letter-spacing:.04em}
-.card-stats{display:flex;align-items:center;gap:1rem}
+.card-meta{display:flex;align-items:center;gap:.75rem}
+.card-date{font-family:var(--font-mono);font-size:.74rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
+.card-stats{display:flex;align-items:center;gap:1rem;margin-left:auto;flex-shrink:0}
 .card-stat{display:flex;align-items:center;gap:.32rem;font-family:var(--font-mono);font-size:.74rem;color:var(--text-3)}
 .card-stat.is-empty{display:none}
 .card-stat svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
@@ -1487,10 +1487,10 @@ window.__siteDataReady.then(function renderFeed() {
     return '<article class="card" tabindex="0" role="link" data-slug="' + esc(p.slug) + '" data-src="' + esc(p.src) + '">' +
       (p.pin ? '<div class="card-corner" aria-hidden="true"></div>' : '') +
       '<h2 class="card-title">' + window.formatTitle(window.postValue(p.title, 'Untitled')) + '</h2>' +
-      '<div class="card-tags">' + tags + '</div>' +
       '<p class="card-excerpt">' + esc(window.postValue(p.excerpt, 'Description')) + '</p>' +
       '<div class="card-meta">' +
         '<span class="card-date">' + esc(window.postValue(p.date, 'Date')) + '</span>' +
+        (tags ? '<div class="card-tags">' + tags + '</div>' : '') +
         '<div class="card-stats">' +
           '<span class="card-stat card-views is-empty" data-views="' + esc(p.slug) + '" aria-label="阅读量">' +
             EYE + '<span class="views-num"></span>' +
