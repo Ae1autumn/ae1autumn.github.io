@@ -470,6 +470,11 @@ a{text-decoration:none}
 .post-timer.is-error .post-timer-icon:first-of-type,
 .post-timer.is-error .post-timer-num,
 .post-timer.is-error .post-timer-sep{display:none}
+/* 错误态只剩闭眼图标：对齐工具栏右侧 36px 图标槽位（.6rem + (36px-16px)/2） */
+.post-timer.is-error .post-timer-icon:last-of-type{
+  width:16px;height:16px;
+  margin-right:calc(.6rem + 10px - 1rem);
+}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
