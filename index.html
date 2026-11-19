@@ -917,15 +917,13 @@ a{text-decoration:none}
 .giscus-host[hidden]{display:none}
 .giscus-host iframe{width:100%!important}
 
-/* 未配置 key 或加载失败时的占位 */
+/* 未配置 key 或加载失败时的占位：居中一行 */
 .comments-placeholder{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;
+  flex:1;display:flex;align-items:center;justify-content:center;
   padding:2rem 1rem;text-align:center;color:var(--text-3);
+  font-size:.78rem;letter-spacing:.04em;
 }
 .comments-placeholder[hidden]{display:none}
-.comments-placeholder svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
-.comments-placeholder p{font-size:.78rem;letter-spacing:.04em}
-.comments-placeholder .sub{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.06em;opacity:.75}
 
 #copy-modal{
   position:fixed;inset:0;z-index:var(--z-modal);
@@ -1326,11 +1324,7 @@ a{text-decoration:none}
     </div>
     <div class="panel-body cm-body" id="cm-body">
       <div class="giscus-host" id="giscus-host" hidden></div>
-      <div class="comments-placeholder" id="comments-fallback">
-        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <p>评论尚未开放</p>
-        <p class="sub">COMMENTS NEED A BACKEND — COMING LATER</p>
-      </div>
+      <div class="comments-placeholder" id="comments-fallback">很遗憾它貌似全部消失了</div>
     </div>
   </div>
 </div>
