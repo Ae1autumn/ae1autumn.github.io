@@ -15,7 +15,7 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
 
     <!-- slug: my-post-slug -->
     <!-- excerpt: 显示在首页卡片上的一句话简介 -->
-    <!-- date: 2025-11-04 -->
+    <!-- date: 2025.11.04 -->
     <!-- pin: true -->
     <!-- tags: 记录, 随笔 -->
 
@@ -36,7 +36,7 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
 
     ---
     title: 文章标题
-    date: 2026-11-19
+    date: 2026.11.19
     tags: [记录, 随笔]
     ---
 
@@ -311,6 +311,8 @@ def normalize_post(post):
     for key, value in post.items():
         if key not in out:
             out[key] = value
+    if out.get("date"):
+        out["date"] = normalize_date(out["date"]) or out["date"]
     return out
 
 
@@ -475,8 +477,17 @@ def first_heading(body):
     return ""
 
 
+DATE_RE = re.compile(r"^(\d{4})[-.](\d{2})[-.](\d{2})$")
+
+
+def normalize_date(value):
+    """把 YYYY-MM-DD / YYYY.MM.DD 统一成 YYYY.MM.DD；不合法返回空串。"""
+    m = DATE_RE.fullmatch(str(value or "").strip())
+    return ".".join(m.groups()) if m else ""
+
+
 def valid_date(value):
-    return bool(value and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(value).strip()))
+    return bool(normalize_date(value))
 
 
 def git_first_add_date(path):
@@ -494,7 +505,7 @@ def git_first_add_date(path):
     except Exception:
         return None
     lines = [line.strip() for line in out.splitlines() if line.strip()]
-    return lines[-1] if lines else None
+    return normalize_date(lines[-1]) or None
 
 
 def file_created_date(path):
@@ -506,11 +517,11 @@ def file_created_date(path):
     st = path.stat()
     ts = getattr(st, "st_birthtime", None)
     if ts is not None:
-        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+        return normalize_date(datetime.fromtimestamp(ts).strftime("%Y-%m-%d"))
     git_date = git_first_add_date(path)
     if git_date:
         return git_date
-    return datetime.fromtimestamp(st.st_ctime).strftime("%Y-%m-%d")
+    return normalize_date(datetime.fromtimestamp(st.st_ctime).strftime("%Y-%m-%d"))
 
 
 def allocate_slug(base, used):
@@ -542,10 +553,10 @@ def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, e
     used_slugs.add(slug)
 
     old = state["articles"].get(src_rel) or {}
-    date = str(front.get("date") or "").strip()
-    if not valid_date(date):
-        date = str(old.get("date") or "").strip()
-    if not valid_date(date):
+    date = normalize_date(front.get("date"))
+    if not date:
+        date = normalize_date(old.get("date"))
+    if not date:
         date = file_created_date(src_path)
 
     title = str(front.get("title") or "").strip()
@@ -606,9 +617,9 @@ def issue_to_post(issue, args, state, data_dir, posts_dir):
         slug = f"{base_slug}-{n}"
         n += 1
 
-    date = marker(body, "date")
-    if not (date and re.fullmatch(r"\d{4}-\d{2}-\d{2}", date)):
-        date = str(issue.get("created_at") or "")[:10]
+    date = normalize_date(marker(body, "date"))
+    if not date:
+        date = normalize_date(str(issue.get("created_at") or "")[:10])
 
     pin_text = (marker(body, "pin") or "").lower()
     pin = pin_text in ("true", "1", "yes", "on")

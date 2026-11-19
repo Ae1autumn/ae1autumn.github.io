@@ -479,6 +479,15 @@ a{text-decoration:none}
 }
 .post-reload-btn:hover{border-color:var(--accent);color:var(--accent)}
 
+/* 空文章：居中提示 + 禁用态 */
+.post-content.is-empty{display:flex;align-items:center;justify-content:center;padding:0}
+.post-empty{font-size:.9rem;color:var(--text-3);letter-spacing:.04em;text-align:center;padding:0 var(--pad-x)}
+#post-page.is-empty-post .post-toolbar-actions .icon-btn:disabled:not(#btn-comments){
+  opacity:.35;pointer-events:none;
+}
+#post-page.is-empty-post .post-chapters-wrap:disabled,
+#post-page.is-empty-post .fs-chap:disabled{pointer-events:none}
+
 /* toolbar：章节指示 + 操作 */
 .post-toolbar-row{
   position:relative;z-index:var(--z-post-ui);flex-shrink:0;
@@ -2546,6 +2555,7 @@ window.__siteDataReady.then(function () {
 
   let currentSlug = null, currentMeta = null;
   let rawMarkdown = '', loadFailed = false;
+  let isEmptyPost = false;
   let postLoadToken = 0, currentAbort = null;
   let contentReady = false;
   let timerInterval = null, usedSeconds = 0;
@@ -3343,6 +3353,8 @@ window.__siteDataReady.then(function () {
     contentReady = false; usedSeconds = 0; loadFailed = false; rawMarkdown = '';
     if (currentAbort) { currentAbort.abort(); currentAbort = null; }
     resetChapterBlocks();
+    setPostControlsDisabled(false);
+    postContent.classList.remove('is-empty');
     clearSearch();
     searchInput.value = '';
 
@@ -3418,6 +3430,23 @@ window.__siteDataReady.then(function () {
         '</div>';
       document.getElementById('post-reload-btn').addEventListener('click', function () { openPost(slug, meta); });
       refreshVFades(); // 失败页内容短，清除上一篇残留的渐隐
+      return;
+    }
+
+    /* 空内容：不渲染 Markdown，只显示提示并禁用无关控件 */
+    if (!rawMarkdown.trim()) {
+      if (isFullscreen) setFullscreen(false);
+      resetChapterBlocks();
+      postHeaderRow.classList.remove('is-loading');
+      postHeaderRow.style.setProperty('--post-progress', '0%');
+      fsChap.style.setProperty('--fs-progress', '0%');
+      postRead.textContent = '00';
+      postContent.classList.add('is-empty');
+      postContent.innerHTML = '<p class="post-empty" role="status">很遗憾它似乎没有内容</p>';
+      setPostControlsDisabled(true);
+      refreshVFades();
+      contentReady = true;
+      startTimer();
       return;
     }
 
@@ -3531,6 +3560,18 @@ window.__siteDataReady.then(function () {
   /* 加载失败时：所有按钮点击都转为重载（防卡死、方便探索） */
   function reloadPost() { if (currentSlug && currentMeta) openPost(currentSlug, currentMeta); }
   function guardFailed() { if (!loadFailed) return false; reloadPost(); return true; }
+
+  /* 空文章：顶部关闭区域和评论按钮之外，其余控件统一禁用 */
+  const disabledControls = [chapWrap, btnFullscreen, btnCopy, btnSearchPost, fsChap];
+  function setPostControlsDisabled(disabled) {
+    isEmptyPost = disabled;
+    postPage.classList.toggle('is-empty-post', disabled);
+    disabledControls.forEach(function (el) {
+      el.disabled = disabled;
+      if (disabled) el.setAttribute('aria-disabled', 'true');
+      else el.removeAttribute('aria-disabled');
+    });
+  }
 
   btnCopy.addEventListener('click', function () {
     if (guardFailed() || !rawMarkdown) return;
@@ -3693,13 +3734,13 @@ window.__siteDataReady.then(function () {
     ctrlSolo = false;
   });
   document.addEventListener('keyup', function (e) {
-    if (e.key === 'Control' && ctrlSolo && currentSlug && !loadFailed) setFullscreen(!isFullscreen);
+    if (e.key === 'Control' && ctrlSolo && currentSlug && !loadFailed && !isEmptyPost) setFullscreen(!isFullscreen);
     ctrlSolo = false;
   });
 
   document.addEventListener('keydown', function (e) {
     // Ctrl/Cmd+F：文章页打开时接管为文内搜索
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && currentSlug && !loadFailed) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && currentSlug && !loadFailed && !isEmptyPost) {
       e.preventDefault();
       if (openPanel !== 'search') { closeAllPanels(); _doOpen('search'); }
       searchInput.focus(); searchInput.select();

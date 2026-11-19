@@ -3,19 +3,21 @@
   "articles": {
     "test-t.pin.md": {
       "body_sha256": "2cb71940932d14e13682a02965299ad9565b71824f8e8657bfea3279e164d00c",
-      "date": "2026-11-19",
+      "date": "2026.11.29",
       "file": "posts/test-t.md",
       "meta": {
-        "date": "2026-11-19",
-        "excerpt": "测试文档：长文档渲染与结构测试 本文档为测试用途，内容涵盖多种 Markdown 语法元素，用于验证渲染效果、锚点跳转、表格、代码块、引用、列表等特性。内容本身不追求专业性，仅作结构与格式测试。",
+        "date": "2026.11.29",
+        "excerpt": "覆盖 Markdown 常见语法与扩展的渲染回归测试文档。",
         "pin": true,
         "slug": "test-t",
         "src": "./posts/test-t.md",
-        "tags": [],
+        "tags": [
+          "测试"
+        ],
         "title": "测试文档：长文档渲染与结构测试"
       },
       "slug": "test-t",
-      "source_sha256": "c02ceb007913a7a2e5a66cb953aee6558e5401394449ca1885c174b465ea5203"
+      "source_sha256": "b402e8f2ea687780492c2ef47b69d34492d2f8d44c72c0dfa4eec5d0e5a749a7"
     }
   },
   "issues": {
