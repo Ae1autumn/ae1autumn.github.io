@@ -1528,6 +1528,7 @@ window.__siteDataReady.then(function hydrateViews() {
   if (!cfg || !cfg.code || !els.length) return;
 
   var base = 'https://' + cfg.code + '.goatcounter.com/counter/';
+  var bust = '?v=' + Date.now();
 
   /* 总访问量：跟在「n 篇」后面，取不到时连字符和数字一起隐藏 */
   function paintTotal(text) {
@@ -1558,8 +1559,8 @@ window.__siteDataReady.then(function hydrateViews() {
   }
 
   function fetchCount(slug) {
-    var url = base + encodeURIComponent(typeof cfg.pathPrefix === 'string' ? cfg.pathPrefix + slug : '/' + slug) + '.json';
-    fetch(url, { credentials: 'omit' }).then(function (r) {
+    var url = base + encodeURIComponent(typeof cfg.pathPrefix === 'string' ? cfg.pathPrefix + slug : '/' + slug) + '.json' + bust;
+    fetch(url, { credentials: 'omit', cache: 'no-store' }).then(function (r) {
       if (r.status === 404) return '0';   // 该路径还没有记录，视为 0
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json().then(function (d) { return d && d.count != null ? String(d.count) : null; });
@@ -1571,7 +1572,7 @@ window.__siteDataReady.then(function hydrateViews() {
 
   /* TOTAL 是 GoatCounter 的特殊路径，返回整站总访问量 */
   function fetchTotal() {
-    return fetch(base + 'TOTAL.json', { credentials: 'omit' }).then(function (r) {
+    return fetch(base + 'TOTAL.json' + bust, { credentials: 'omit', cache: 'no-store' }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function (d) {
