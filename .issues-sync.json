@@ -1,5 +1,6 @@
 {
   "api_state": "open",
+  "articles": {},
   "issues": {
     "11": {
       "body_sha256": "63eaaa8acbc4f32e31e8fc44cebb81776343930f60b946b7354e0ec1a678711c",
