@@ -278,9 +278,11 @@ a{text-decoration:none}
   border-bottom:var(--hairline) solid var(--border);
 }
 .feed-head h2{font-family:var(--font-mono);font-size:.72rem;font-weight:400;letter-spacing:.28em;text-transform:uppercase;color:var(--text-3)}
-.feed-meta{display:flex;align-items:baseline;gap:.5rem}
+.feed-meta{display:flex;align-items:center;gap:.5rem}
 .feed-count,.feed-total,.feed-sep{font-family:var(--font-mono);font-size:.72rem;color:var(--text-3)}
-.feed-sep.is-empty,.feed-total.is-empty{display:none}
+.feed-count,.feed-total{display:flex;align-items:center;gap:.3rem}
+.feed-count svg,.feed-total svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.feed-sep.is-empty,.feed-total.is-empty,.feed-count.is-empty{display:none}
 .cards{display:flex;flex-direction:column;gap:1.1rem}
 
 .card{
@@ -1065,9 +1067,15 @@ a{text-decoration:none}
     <div class="feed-head">
       <h2>全部文章</h2>
       <span class="feed-meta">
-        <span class="feed-count" id="feed-count"></span>
+        <span class="feed-total is-empty" id="feed-total" aria-label="总浏览量">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="feed-num" id="feed-total-num"></span>
+        </span>
         <span class="feed-sep is-empty" id="feed-sep" aria-hidden="true">-</span>
-        <span class="feed-total is-empty" id="feed-total"></span>
+        <span class="feed-count is-empty" id="feed-count" aria-label="总文章数">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>
+          <span class="feed-num" id="feed-count-num"></span>
+        </span>
       </span>
     </div>
     <div class="cards" id="cards"></div>
@@ -1482,13 +1490,15 @@ window.__siteDataReady.then(function renderFeed() {
 
   var cardsEl = document.getElementById('cards');
   var feedCnt = document.getElementById('feed-count');
+  var feedCntNum = document.getElementById('feed-count-num');
   if (window.__siteDataError) {
     if (cardsEl) cardsEl.innerHTML = '<p class="feed-error">很抱歉消失在了你的视野之中</p>';
-    if (feedCnt) feedCnt.textContent = '';
+    if (feedCntNum) feedCntNum.textContent = '';
     return;
   }
   if (cardsEl) cardsEl.innerHTML = html;
-  if (feedCnt) feedCnt.textContent = window.POSTS.length + ' 篇';
+  if (feedCntNum) feedCntNum.textContent = window.POSTS.length;
+  if (feedCnt) feedCnt.classList.remove('is-empty');
 
   /* 卡片标题横向 / 简介纵向滚动的边缘渐隐 */
   function updateCardTitleFade(el) {
@@ -1530,12 +1540,13 @@ window.__siteDataReady.then(function hydrateViews() {
   var base = 'https://' + cfg.code + '.goatcounter.com/counter/';
   var bust = '?v=' + Date.now();
 
-  /* 总访问量：跟在「n 篇」后面，取不到时连字符和数字一起隐藏 */
+  /* 总浏览量：排在文章数前面，取不到时连字符和数字一起隐藏 */
   function paintTotal(text) {
     var totalEl = document.getElementById('feed-total');
+    var totalNum = document.getElementById('feed-total-num');
     var sepEl = document.getElementById('feed-sep');
-    if (!totalEl || !sepEl) return;
-    totalEl.textContent = text + ' 阅览量';
+    if (!totalEl || !totalNum || !sepEl) return;
+    totalNum.textContent = text;
     totalEl.classList.remove('is-empty');
     sepEl.classList.remove('is-empty');
   }
