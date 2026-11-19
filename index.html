@@ -743,12 +743,16 @@ a{text-decoration:none}
 #panel-chapters.is-open .panel-box{transform:translateX(0)}
 #panel-search .panel-box{transform:translateX(calc(100% + 20px));transition:transform .36s var(--ease-spring)}
 #panel-search.is-open .panel-box{transform:translateX(0)}
+/* 高度完全交给 CSS：顶部由 JS 定位，底部固定留 GAP，剩余空间即是最大高度。
+   内容不足时最小 180px，超出部分由 .panel 裁剪 */
 #panel-comments{
-  height:180px;
+  bottom:var(--panel-gap,12px);
   overflow:hidden;
-  transition:height .3s var(--ease-out);
 }
-#panel-comments .panel-box{height:100%;transform:translateY(-100%);transition:transform .36s var(--ease-spring)}
+#panel-comments .panel-box{
+  height:auto;min-height:180px;max-height:100%;
+  transform:translateY(-100%);transition:transform .36s var(--ease-spring);
+}
 #panel-comments.is-open .panel-box{transform:translateY(0)}
 .panel:not(.is-open) .panel-box{transition:transform .36s cubic-bezier(.4,0,1,1) .08s;pointer-events:none}
 
@@ -828,7 +832,8 @@ a{text-decoration:none}
 .fade-t.fade-b{-webkit-mask-image:linear-gradient(to bottom,transparent,#000 16px,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(to bottom,transparent,#000 16px,#000 calc(100% - 16px),transparent)}
 
 /* 评论面板 */
-.cm-body{display:flex;flex-direction:column;overscroll-behavior:contain}
+/* flex-basis:auto：父级高度改为 auto 后，靠内容撑开；超过 max-height 时再收缩并滚动 */
+.cm-body{flex:1 1 auto;display:flex;flex-direction:column;overscroll-behavior:contain}
 .giscus-host{width:100%;flex:0 0 auto}
 .giscus-host[hidden]{display:none}
 .giscus-host iframe{width:100%!important}
@@ -2332,7 +2337,6 @@ window.__siteDataReady.then(function () {
       panelComments.style.width = cmW + 'px';
       panelComments.style.left = (r.left + (r.width - cmW) / 2) + 'px';
       panelComments.style.right = 'auto';
-      fitCommentsPanel();
       panelSearch.style.top = fsTop + 'px';
       panelSearch.style.right = Math.max(window.innerWidth - r.right + GAP, 8) + 'px';
       panelSearch.style.width = w + 'px';
@@ -2349,7 +2353,6 @@ window.__siteDataReady.then(function () {
     panelComments.style.width = cmW + 'px';
     panelComments.style.left = (r.left + (r.width - cmW) / 2) + 'px';
     panelComments.style.right = 'auto';
-    fitCommentsPanel();
     panelSearch.style.top = (r.top + GAP) + 'px';
     panelSearch.style.right = Math.max(window.innerWidth - r.right + GAP, 8) + 'px';
     panelSearch.style.width = w + 'px';
@@ -3182,29 +3185,8 @@ window.__siteDataReady.then(function () {
     giscusHost.innerHTML = '';
     commentsFallback.hidden = false;
     panelComments.classList.remove('is-loaded');
-    panelComments.style.height = '';
   }
 
-  /* 有内容后按内容撑开，最高撑满屏幕可用高度（含底部间距，整体 100% 不溢出），
-     超出部分由 .cm-body 滚动 */
-  function fitCommentsPanel() {
-    const hostH = giscusHost.getBoundingClientRect().height;
-    if (hostH <= 0) return;
-    panelComments.classList.add('is-loaded');
-    const headH = panelComments.querySelector('.panel-head').offsetHeight;
-    const top = panelComments.getBoundingClientRect().top;
-    /* 面板顶端到屏幕底部的全部可用高度，底部留一个 GAP：
-       面板 + 间距正好占满 100%，不再受正文区域高度限制 */
-    const maxH = Math.max(180, window.innerHeight - top - GAP);
-    const next = Math.max(180, Math.min(headH + hostH, maxH));
-    const cur = parseFloat(panelComments.style.height);
-    if (Number.isFinite(cur) && Math.abs(cur - next) < 1) return;
-    panelComments.style.height = next + 'px';
-  }
-
-  if (window.ResizeObserver) {
-    new ResizeObserver(function () { fitCommentsPanel(); }).observe(giscusHost);
-  }
   function sendGiscusConfig(extra) {
     const frame = giscusHost.querySelector('iframe.giscus-frame');
     if (!frame) return;
@@ -3248,6 +3230,8 @@ window.__siteDataReady.then(function () {
     giscusTerm = currentSlug;
     giscusHost.hidden = false;
     commentsFallback.hidden = true;
+    /* 有真实内容后换掉磨砂背景（高度不再由 JS 控制） */
+    panelComments.classList.add('is-loaded');
 
     const s = document.createElement('script');
     s.src = 'https://giscus.app/client.js';
