@@ -52,6 +52,8 @@
 - `行内代码`：用于标记变量名、函数名或短代码片段。
 - <u>下划线</u>（部分渲染器支持 HTML 标签）。
 - 上标与下标：H~2~O、E=mc^2^（依赖扩展语法，可能不生效）。
+- ==高亮==：用 `==` 包裹的重点标记。
+- ++插入++：用 `++` 包裹的插入内容。
 
 ### 2.2 换行测试
 
@@ -185,6 +187,7 @@ if __name__ == "__main__":
     documents = load_documents("./docs")
     for doc in documents:
         print(f"{doc.title}: {doc.word_count()} words")
+```
 
 ### 4.2 JavaScript 代码
 
@@ -460,6 +463,53 @@ $$
 
 使用 <mark>高亮标记</mark> 突出显示文字（依赖 HTML 支持）。
 
+### 7.9 GitHub 告示块
+
+> [!NOTE]
+> 普通提示。内部可以包含 **格式化文字** 和 [链接](https://example.com)。
+
+> [!TIP]
+> 小技巧：告示块内部支持列表和代码。
+>
+> - 列表项一
+> - 列表项二
+>
+> ```bash
+> echo "callout"
+> ```
+
+> [!IMPORTANT]
+> 重要信息。
+
+> [!WARNING]
+> 警告内容。
+
+> [!CAUTION]
+> 危险操作，谨慎执行。
+
+### 7.10 缩写定义
+
+*[HTML]: HyperText Markup Language
+*[CSS]: Cascading Style Sheets
+
+正文里再次出现 HTML 与 CSS 时，应显示为带虚线下划线的缩写；行内代码 `HTML` 和 [HTML 链接](https://example.com) 不应被替换。
+
+### 7.11 媒体与原生 HTML 表格
+
+<figure>
+  <img src="https://aermium.com/res/image/e-grass.jpg" alt="示例图片">
+  <figcaption>图片题注：figure / figcaption</figcaption>
+</figure>
+
+<iframe src="https://example.com" title="嵌入示例" width="560" height="315"></iframe>
+
+<video controls src="https://example.com/sample.mp4"></video>
+
+<table>
+  <tr><th>原生表格</th><th>值</th></tr>
+  <tr><td>A</td><td>1</td></tr>
+</table>
+
 ---
 
 ## 附录
@@ -478,10 +528,15 @@ $$
 - [x] 水平分割线
 - [x] 长段落与超长单词
 - [x] 混合内容嵌套
-- [ ] 脚注（取决于渲染器）
-- [ ] 定义列表（取决于渲染器）
-- [ ] 数学公式（取决于渲染器）
-- [ ] HTML 内嵌（取决于渲染器）
+- [x] 脚注
+- [x] 定义列表
+- [x] 数学公式
+- [x] HTML 内嵌
+- [x] 高亮 / 插入（`==` / `++`）
+- [x] 缩写定义
+- [x] GitHub 告示块
+- [x] iframe / video / figure
+- [x] 原生 HTML 表格滚动容器
 
 ### A.2 版本记录
 
@@ -499,6 +554,5 @@ $$
 ---
 
 文档结束。
-```
 
 补充说明：原文 2.4 节中的“行内链接”“带标题的链接”“引用式链接”“自动链接”“邮箱链接”在纯文本中丢失了 URL，我分别补为 `https://example.com`、`https://example.com "Example Title"`、引用定义 `[ref1]: https://example.com "Reference Link"`、`<https://example.com>`、`<mailto:someone@example.com>`，这些是测试占位值，可按需替换。目录中的锚点按常见 GitHub 风格标题锚点生成，若目标渲染器锚点规则不同，可相应调整。

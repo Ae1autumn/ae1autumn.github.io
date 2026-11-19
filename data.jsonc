@@ -1,5 +1,17 @@
 {
   "posts": [
+    // 手工维护的渲染回归测试（位于同步标记之外，issue 同步不会覆盖）
+    {
+      "slug": "test-t",
+      "title": "测试文档：长文档渲染与结构测试",
+      "date": "2026-01-01",
+      "tags": [
+        "测试"
+      ],
+      "excerpt": "覆盖 Markdown 常见语法与扩展的渲染回归测试文档。",
+      "src": "./posts/test-t.md",
+      "manual": true
+    },
     // >>> issue-sync:posts:start
     {
       "slug": "issue-23",
