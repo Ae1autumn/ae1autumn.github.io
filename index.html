@@ -1396,7 +1396,7 @@ a{text-decoration:none}
   <div class="panel-box">
     <div class="search-field">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-      <input class="search-input" id="post-search-input" type="search" placeholder="在本文中搜索…" autocomplete="off" aria-label="在本文中搜索">
+      <input class="search-input" id="post-search-input" type="search" autocomplete="off" aria-label="在本文中搜索">
       <button class="panel-close" data-close-panel aria-label="关闭搜索">
         <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -3274,7 +3274,7 @@ window.__siteDataReady.then(function () {
     tocItems = [];
     activeTocIdx = -1;
     if (!headings.length) {
-      tocList.innerHTML = '<p class="toc-empty">本文没有章节</p>';
+      tocList.innerHTML = '<p class="toc-empty">本文也许没有章节</p>';
       return;
     }
     // 仅根据真实祖先关系生成层级；没有父级的标题不画竖线
