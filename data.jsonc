@@ -9,7 +9,7 @@
         "测试"
       ],
       "excerpt": "覆盖 Markdown 常见语法与扩展的渲染回归测试文档。",
-      "src": "./posts/test-t.md",
+      "src": "./posts/test-t.pin.md",
       "manual": true
     },
     // >>> issue-sync:posts:start

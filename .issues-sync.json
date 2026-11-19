@@ -4,12 +4,12 @@
     "test-t.md": {
       "body_sha256": "2cb71940932d14e13682a02965299ad9565b71824f8e8657bfea3279e164d00c",
       "date": "2026-11-19",
-      "file": "posts/test-t.md",
+      "file": "posts/test-t.pin.md",
       "meta": {
         "date": "2026-11-19",
         "excerpt": "测试文档：长文档渲染与结构测试 本文档为测试用途，内容涵盖多种 Markdown 语法元素，用于验证渲染效果、锚点跳转、表格、代码块、引用、列表等特性。内容本身不追求专业性，仅作结构与格式测试。",
         "slug": "test-t",
-        "src": "./posts/test-t.md",
+        "src": "./posts/test-t.pin.md",
         "tags": [],
         "title": "测试文档：长文档渲染与结构测试"
       },
