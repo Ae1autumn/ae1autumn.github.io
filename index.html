@@ -653,6 +653,7 @@ a{text-decoration:none}
   transition:border-color .18s,background-color .18s;
 }
 .post-content .code-block.is-collapsed{cursor:pointer}
+.post-content .code-block.is-static{cursor:pointer}
 .post-content .code-block pre{margin:0;border:none;border-radius:0;background:none}
 /* 头栏与站内控件同一套高度与间距 */
 .post-content .code-head{
@@ -2091,6 +2092,11 @@ window.__siteDataReady.then(function hydrateViews() {
     toggle.setAttribute('aria-label', collapsed ? '展开代码' : '收起代码');
   }
 
+  function hasCodeSelection() {
+    var sel = window.getSelection ? window.getSelection() : null;
+    return !!(sel && sel.rangeCount && !sel.isCollapsed);
+  }
+
   function setupCodeBlocks(root) {
     var viewportH = root.clientHeight || window.innerHeight || 0;
     if (viewportH < 1) return;
@@ -2104,7 +2110,7 @@ window.__siteDataReady.then(function hydrateViews() {
       var flag = pre.getAttribute('data-code-flag') || '';
       var naturalH = pre.getBoundingClientRect().height;
       var auto = naturalH > viewportH;
-      if (!flag && !auto) continue; /* 没超过容器的普通代码块保持原样 */
+      var collapsible = !!flag || auto;
 
       var codeEl = pre.querySelector('code');
       let codeText = codeEl ? codeEl.textContent : pre.textContent;
@@ -2112,40 +2118,7 @@ window.__siteDataReady.then(function hydrateViews() {
       var lang = pre.getAttribute('data-code-lang') || '';
 
       let block = document.createElement('div');
-      block.className = 'code-block';
-
-      var head = document.createElement('div');
-      head.className = 'code-head';
-
-      /* 图标只是视觉提示，点击整个块都能切换；按钮本身保留键盘可达性 */
-      let toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.className = 'code-toggle';
-      toggle.innerHTML = CODE_TRIANGLE;
-
-      var meta = document.createElement('span');
-      meta.className = 'code-meta';
-
-      var lines = document.createElement('span');
-      lines.className = 'code-lines';
-      lines.textContent = lineCount + ' Lines';
-
-      var sep = document.createElement('span');
-      sep.className = 'code-sep';
-      sep.textContent = '-';
-
-      let langBtn = document.createElement('button');
-      langBtn.type = 'button';
-      langBtn.className = 'code-lang';
-      langBtn.textContent = lang || 'Text';
-      langBtn.title = '复制代码';
-      langBtn.setAttribute('aria-label', '复制代码');
-
-      meta.appendChild(lines);
-      meta.appendChild(sep);
-      meta.appendChild(langBtn);
-      head.appendChild(toggle);
-      head.appendChild(meta);
+      block.className = 'code-block' + (collapsible ? '' : ' is-static');
 
       var body = document.createElement('div');
       body.className = 'code-body';
@@ -2154,23 +2127,52 @@ window.__siteDataReady.then(function hydrateViews() {
       check.className = 'code-check';
       check.innerHTML = CODE_CHECK;
 
+      let head = null;
+      let langBtn = null;
+
+      if (collapsible) {
+        head = document.createElement('div');
+        head.className = 'code-head';
+
+        /* 图标只是视觉提示，点击顶栏都能切换；按钮本身保留键盘可达性 */
+        let toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'code-toggle';
+        toggle.innerHTML = CODE_TRIANGLE;
+
+        var meta = document.createElement('span');
+        meta.className = 'code-meta';
+
+        var lines = document.createElement('span');
+        lines.className = 'code-lines';
+        lines.textContent = lineCount + ' Lines';
+
+        var sep = document.createElement('span');
+        sep.className = 'code-sep';
+        sep.textContent = '-';
+
+        langBtn = document.createElement('button');
+        langBtn.type = 'button';
+        langBtn.className = 'code-lang';
+        langBtn.textContent = lang || 'Text';
+        langBtn.title = '复制代码';
+        langBtn.setAttribute('aria-label', '复制代码');
+
+        meta.appendChild(lines);
+        meta.appendChild(sep);
+        meta.appendChild(langBtn);
+        head.appendChild(toggle);
+        head.appendChild(meta);
+      }
+
       parent.insertBefore(block, pre);
       body.appendChild(pre);
-      block.appendChild(head);
+      if (head) block.appendChild(head);
       block.appendChild(body);
       block.appendChild(check);
 
-      block.addEventListener('click', function (e) {
-        var t = e.target;
-        if (t && t.closest && (t.closest('.code-lang') || t.closest('a'))) return;
-        var sel = window.getSelection ? window.getSelection() : null;
-        if (sel && sel.rangeCount && !sel.isCollapsed) return;
-        setCodeCollapsed(block, !block.classList.contains('is-collapsed'));
-        if (window.refreshPostLayout) window.refreshPostLayout();
-      });
-
       let copyTimer = 0;
-      langBtn.addEventListener('click', function () {
+      let doCopy = function () {
         function done(ok) {
           if (!ok) return;
           block.classList.add('is-copied');
@@ -2183,9 +2185,34 @@ window.__siteDataReady.then(function hydrateViews() {
         if (navigator.clipboard && window.isSecureContext) {
           navigator.clipboard.writeText(codeText).then(function () { done(true); }, function () {});
         }
-      });
+      };
 
-      setCodeCollapsed(block, flag === 'collapse' || (!flag && auto));
+      if (collapsible) {
+        /* 收起时：点 Type 复制，点其它地方展开；展开后：点顶栏收起，点代码区复制 */
+        block.addEventListener('click', function (e) {
+          var t = e.target;
+          if (t && t.closest && (t.closest('.code-lang') || t.closest('a'))) return;
+          if (hasCodeSelection()) return;
+          var collapsed = block.classList.contains('is-collapsed');
+          var inHead = !!(t && t.closest && t.closest('.code-head'));
+          if (collapsed || inHead) {
+            setCodeCollapsed(block, !collapsed);
+            if (window.refreshPostLayout) window.refreshPostLayout();
+          } else {
+            doCopy();
+          }
+        });
+
+        langBtn.addEventListener('click', doCopy);
+        setCodeCollapsed(block, flag === 'collapse' || (!flag && auto));
+      } else {
+        /* 普通代码块：点击即复制 */
+        block.addEventListener('click', function (e) {
+          if (e.target && e.target.closest && e.target.closest('a')) return;
+          if (hasCodeSelection()) return;
+          doCopy();
+        });
+      }
     }
   }
 
