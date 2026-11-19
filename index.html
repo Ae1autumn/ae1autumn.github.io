@@ -1396,18 +1396,28 @@ a{text-decoration:none}
     });
 })();
 
-/* 统计脚本是异步加载的：未就绪时先入队，加载完成后补发，
-   避免直接带 hash 打开文章时漏记 */
-window.__gcQueue = [];
-window.trackPostView = function (slug) {
-  var cfg = window.GOATCOUNTER;
-  if (!cfg || !cfg.code) return;
-  var path = (typeof cfg.pathPrefix === 'string' ? cfg.pathPrefix : '/') + slug;
-  if (window.goatcounter && typeof window.goatcounter.count === 'function') {
-    window.goatcounter.count({ path: path });
-  } else {
-    window.__gcQueue.push(path);
-  }
+/* 访问统计：不加载 gc.zgo.at 的 count.js（该域名在部分网络不可达，
+   会导致一条 pageview 都发不出去），直接按 GoatCounter 的 /count 协议发命中。
+   等 data.jsonc 就绪后再发，避免直接带 hash 打开文章时漏记。 */
+window.trackPostView = function (slug, title) {
+  if (!slug) return;
+  window.__siteDataReady.then(function () {
+    var cfg = window.GOATCOUNTER;
+    if (!cfg || !cfg.code) return;
+    var host = location.hostname;
+    if (location.protocol === 'file:' ||
+        /(^localhost$|^127\.|^10\.|^192\.168\.|^0\.0\.0\.0$)/.test(host)) return;
+    var path = (typeof cfg.pathPrefix === 'string' ? cfg.pathPrefix : '/') + slug;
+    var url = 'https://' + cfg.code + '.goatcounter.com/count' +
+      '?p=' + encodeURIComponent(path) +
+      '&r=' + encodeURIComponent(document.referrer || '') +
+      '&t=' + encodeURIComponent(title || document.title || '') +
+      '&s=' + (window.screen ? window.screen.width : 0) +
+      '&b=0&rnd=' + Math.random().toString(36).slice(2, 7);
+    if (navigator.sendBeacon && navigator.sendBeacon(url)) return;
+    var img = new Image();
+    img.src = url;
+  });
 };
 
 window.escapeHTML = function (value) {
@@ -1591,25 +1601,7 @@ window.__siteDataReady.then(function hydrateViews() {
   });
 });
 
-/* 只在配置了 code 时加载统计脚本；否则整站不发起任何第三方请求 */
-window.__siteDataReady.then(function loadGoatCounter() {
-  var cfg = window.GOATCOUNTER;
-  if (!cfg || !cfg.code) return;
-  var s = document.createElement('script');
-  s.async = true;
-  s.src = 'https://gc.zgo.at/count.js';
-  s.setAttribute('data-goatcounter', 'https://' + cfg.code + '.goatcounter.com/count');
-  s.onload = function () {
-    var q = window.__gcQueue || [];
-    while (q.length) {
-      var path = q.shift();
-      if (window.goatcounter && typeof window.goatcounter.count === 'function') {
-        window.goatcounter.count({ path: path });
-      }
-    }
-  };
-  document.head.appendChild(s);
-});
+/* 计数由 trackPostView 直接发往 GoatCounter，不再加载第三方脚本 */
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/highlight.min.js"></script>
@@ -2967,7 +2959,7 @@ window.__siteDataReady.then(function () {
     clearTimeout(closePostTimer);
 
     /* 阅读量：首次打开某篇时发送虚拟 pageview；重载/重试不重复计数 */
-    if (currentSlug !== slug && window.trackPostView) window.trackPostView(slug);
+    if (currentSlug !== slug && window.trackPostView) window.trackPostView(slug, meta && meta.title);
 
     const wasLoading = postHeaderRow.classList.contains('is-loading');
     if (currentSlug && currentSlug !== slug && !loadFailed && !wasLoading) {
