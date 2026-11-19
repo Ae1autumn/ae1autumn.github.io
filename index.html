@@ -405,10 +405,10 @@ a{text-decoration:none}
 }
 .menu-link-btn:hover{color:var(--text);background:color-mix(in srgb,var(--bg) 82%,var(--text-3))}
 .menu-link-btn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-/* 链接与阅读速度并排：不改变菜单高度 */
+/* 链接与占位图标并排：不改变菜单高度 */
 .menu-row{display:flex;align-items:center;gap:12px;flex-shrink:0}
 .menu-row .menu-link-btn{width:auto;flex:1 1 auto;min-width:0}
-.menu-row .menu-icon-btn{width:44px;height:var(--control-h);flex:0 0 44px;aspect-ratio:1}
+.menu-row .menu-icon-btn{width:44px;height:var(--control-h);flex:0 0 44px;aspect-ratio:1;pointer-events:none}
 /* 上方：主题滑块（日 / 自适应 / 夜） */
 .theme-slider{
   position:relative;display:flex;flex-shrink:0;height:54px;padding:4px;
@@ -1041,58 +1041,6 @@ a{text-decoration:none}
 }
 .copy-main.is-disabled,.copy-cell.is-disabled{opacity:.35;pointer-events:none}
 
-#speed-modal{
-  position:fixed;inset:0;z-index:var(--z-modal);
-  display:flex;align-items:center;justify-content:center;
-  background:var(--scrim);
-  opacity:0;pointer-events:none;visibility:hidden;
-  transition:opacity .22s,visibility 0s .22s;
-}
-#speed-modal.is-open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .22s}
-.speed-wrap{
-  display:flex;flex-direction:column;align-items:center;gap:.55rem;
-  transform:translateY(10px) scale(.98);
-  transition:transform .28s var(--ease-spring);
-}
-#speed-modal.is-open .speed-wrap{transform:translateY(0) scale(1)}
-.speed-box{
-  width:min(280px,calc(100vw - 3rem));
-  padding:8px 10px 9px;
-  background:var(--surface);
-  border:var(--hairline) solid var(--border);
-  border-radius:12px;
-}
-.speed-field{
-  position:relative;
-  background:var(--bg);
-  border-radius:var(--radius-md);
-}
-.speed-input{
-  display:block;width:100%;height:38px;
-  padding:0 34px;
-  border:none;background:none;outline:none;
-  color:var(--text);font-family:var(--font-mono);font-size:1rem;
-  text-align:center;appearance:textfield;-moz-appearance:textfield;
-}
-.speed-input::-webkit-outer-spin-button,
-.speed-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.speed-reset{
-  position:absolute;top:0;right:0;width:34px;height:38px;padding:0;
-  display:flex;align-items:center;justify-content:center;
-  background:none;border:none;color:var(--text-3);
-  transition:color .18s;
-}
-.speed-reset svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.speed-reset.is-active{color:var(--accent)}
-@media (hover:hover){
-  .speed-reset:hover{color:var(--accent)}
-}
-.speed-hint{
-  margin-top:6px;
-  font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;
-  color:var(--text-3);text-align:center;
-}
-
 #nav-confirm{
   position:fixed;inset:0;z-index:var(--z-confirm);
   display:flex;align-items:center;justify-content:center;
@@ -1275,11 +1223,11 @@ a{text-decoration:none}
           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
         </svg>
       </a>
-      <button class="menu-link-btn menu-icon-btn" id="btn-read-speed" type="button" aria-label="阅读速度" title="阅读速度">
+      <span class="menu-link-btn menu-icon-btn" aria-hidden="true">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <use href="#i-eye"/>
         </svg>
-      </button>
+      </span>
     </div>
   </div>
 </div>
@@ -1438,20 +1386,6 @@ a{text-decoration:none}
           </svg>
         </button>
       </div>
-    </div>
-  </div>
-</div>
-
-<div id="speed-modal" aria-hidden="true">
-  <div class="speed-wrap" role="dialog" aria-modal="true" aria-label="阅读速度">
-    <div class="speed-box">
-      <div class="speed-field">
-        <input class="speed-input" id="speed-input" type="number" inputmode="numeric" enterkeyhint="done" min="50" max="2000" step="10" aria-describedby="speed-hint" aria-label="阅读速度（字/分钟）">
-        <button class="speed-reset" id="speed-reset" type="button" aria-label="恢复默认值" title="恢复默认值">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-        </button>
-      </div>
-      <p class="speed-hint" id="speed-hint">Speed/53%</p>
     </div>
   </div>
 </div>
@@ -2303,7 +2237,7 @@ window.__siteDataReady.then(function hydrateViews() {
     if (v) window.lockBackgroundScroll();
     else window.unlockBackgroundScroll();
     if (v) {
-      setTimeout(function () { if (open && !speedOpen) document.getElementById('menu-link-btn').focus(); }, 120);
+      setTimeout(function () { if (open) document.getElementById('menu-link-btn').focus(); }, 120);
     } else {
       btn.focus({ preventScroll: true });
     }
@@ -2314,93 +2248,6 @@ window.__siteDataReady.then(function hydrateViews() {
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open) set(false); });
 
-  /* ── 阅读速度（估算阅读时长用）── */
-  const SPEED_KEY = 'ae_read_speed';
-  const SPEED_DEFAULT = 300;
-  const speedBtn = document.getElementById('btn-read-speed');
-  const speedModal = document.getElementById('speed-modal');
-  const speedInput = document.getElementById('speed-input');
-  const speedReset = document.getElementById('speed-reset');
-  let speedOpen = false;
-
-  function clampSpeed(v) {
-    if (String(v).trim() === '') return SPEED_DEFAULT;
-    const n = Math.round(Number(v));
-    if (!Number.isFinite(n)) return SPEED_DEFAULT;
-    return Math.min(2000, Math.max(50, n));
-  }
-  function getReadSpeed() {
-    try {
-      const raw = localStorage.getItem(SPEED_KEY);
-      if (raw == null) return SPEED_DEFAULT;
-      const n = Number(raw);
-      return Number.isFinite(n) && n >= 50 && n <= 2000 ? n : SPEED_DEFAULT;
-    } catch (e) {
-      return SPEED_DEFAULT;
-    }
-  }
-  window.getReadSpeed = getReadSpeed;
-
-  function openSpeed() {
-    speedReset.classList.remove('is-active');
-    speedInput.value = String(getReadSpeed());
-    speedOpen = true;
-    speedModal.classList.add('is-open');
-    speedModal.setAttribute('aria-hidden', 'false');
-    window.lockBackgroundScroll();
-    setTimeout(function () {
-      if (!speedOpen) return;
-      speedInput.focus();
-      speedInput.select();
-    }, 80);
-  }
-  function closeSpeed() {
-    if (!speedOpen) return;
-    speedOpen = false;
-    speedReset.classList.remove('is-active');
-    speedModal.classList.remove('is-open');
-    speedModal.setAttribute('aria-hidden', 'true');
-    window.unlockBackgroundScroll();
-    if (open) speedBtn.focus({ preventScroll: true });
-    else document.getElementById('menu-btn').focus({ preventScroll: true });
-  }
-  function applySpeed(v) {
-    try { localStorage.setItem(SPEED_KEY, String(v)); } catch (err) {}
-    window.dispatchEvent(new CustomEvent('readspeedchange', { detail: v }));
-  }
-  function commitSpeed() {
-    const raw = speedInput.value.trim();
-    if (raw !== '') applySpeed(clampSpeed(raw));
-    closeSpeed();
-  }
-
-  speedBtn.addEventListener('click', openSpeed);
-  speedReset.addEventListener('click', function () {
-    speedReset.blur();
-    speedReset.classList.add('is-active');
-    speedInput.value = String(SPEED_DEFAULT);
-    applySpeed(SPEED_DEFAULT);
-    speedInput.focus();
-    speedInput.select();
-  });
-  speedInput.addEventListener('input', function () {
-    speedReset.classList.remove('is-active');
-  });
-  speedModal.addEventListener('click', function (e) {
-    if (e.target === speedModal) closeSpeed();
-  });
-  speedInput.addEventListener('keydown', function (e) {
-    speedReset.classList.remove('is-active');
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    commitSpeed();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (!speedOpen || e.key !== 'Escape') return;
-    e.preventDefault();
-    e.stopPropagation();
-    closeSpeed();
-  }, true);
 })();
 
 window.__siteDataReady.then(function () {
@@ -2971,17 +2818,22 @@ window.__siteDataReady.then(function () {
   function pauseTimer() { clearInterval(timerInterval); timerInterval = null; }
   function setUsed(t) { postUsed.textContent = t; fsUsed.textContent = t; }
   function renderTimer() { setUsed(String(Math.floor(usedSeconds / 60)).padStart(2, '0')); }
+  /* ── 预计阅读时长：中文 300 字/分，英文 200 词/分；不计代码与图片 ── */
   function estimateReadMin(text) {
-    const speed = typeof window.getReadSpeed === 'function' ? window.getReadSpeed() : 300;
-    const zh = (text.match(/[一-龥]/g) || []).length;
-    const en = text.replace(/[一-龥]/g, '').trim().split(/\s+/).filter(Boolean).length;
-    /* 英文按中文速度的 53% 折算 */
-    return Math.ceil(zh / speed + en / (speed * 0.53)) || 0;
+    const prose = text
+      .replace(/```[\s\S]*?```/g, '')          /* 围栏代码块 */
+      .replace(/~~~[\s\S]*?~~~/g, '')
+      .replace(/`[^`\n]*`/g, '')               /* 行内代码 */
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')    /* 图片（含 alt） */
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') /* 链接只保留文字 */
+      .replace(/^\s*\[[^\]]+\]:\s+\S+.*$/gm, '') /* 引用式链接定义 */
+      .replace(/<[^>]*>/g, '')                 /* HTML 标签 */
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/&[a-zA-Z]+;|&#\d+;/g, '');     /* HTML 实体 */
+    const zh = (prose.match(/[\u3400-\u4DBF\u4E00-\u9FFF]/g) || []).length;
+    const en = (prose.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
+    return Math.max(1, Math.ceil(zh / 300 + en / 200));
   }
-  window.addEventListener('readspeedchange', function () {
-    if (!currentSlug || !rawMarkdown || loadFailed) return;
-    postRead.textContent = String(estimateReadMin(rawMarkdown)).padStart(2, '0');
-  });
   function setTimerError() {
     /* 顶部计时器整个移除；全屏计时器保留位置，显示占位文本 */
     postTimer.style.display = 'none';
