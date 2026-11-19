@@ -466,15 +466,6 @@ a{text-decoration:none}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
 }
 .post-timer{display:flex;align-items:center;gap:.32rem;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
-.post-timer.is-error{gap:0}
-.post-timer.is-error .post-timer-icon:first-of-type,
-.post-timer.is-error .post-timer-num,
-.post-timer.is-error .post-timer-sep{display:none}
-/* 错误态只剩闭眼图标：对齐工具栏右侧 36px 图标槽位（.6rem + (36px-16px)/2） */
-.post-timer.is-error .post-timer-icon:last-of-type{
-  width:16px;height:16px;
-  margin-right:calc(.6rem + 10px - 1rem);
-}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
@@ -625,6 +616,7 @@ a{text-decoration:none}
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
 }
 .fs-timer svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.fs-timer.is-error svg{display:none}
 /* 全屏时 TOC 标题栏额外显示「退出全屏」 */
 #toc-exit-fs{display:none}
 #post-page.is-fullscreen ~ #panel-chapters #toc-exit-fs{display:flex}
@@ -2562,6 +2554,7 @@ window.__siteDataReady.then(function () {
   const fsChapSep       = $('fs-chap-sep');
   const fsChap2         = $('fs-chap-2');
   const fsUsed          = $('fs-used');
+  const fsTimer         = $('fs-timer');
 
   let currentSlug = null, currentMeta = null;
   let rawMarkdown = '', loadFailed = false;
@@ -2765,13 +2758,19 @@ window.__siteDataReady.then(function () {
     postRead.textContent = String(estimateReadMin(rawMarkdown)).padStart(2, '0');
   });
   function setTimerError() {
-    postTimer.classList.add('is-error');
+    /* 顶部计时器整个移除；全屏计时器保留位置，显示占位文本 */
+    postTimer.style.display = 'none';
+    fsTimer.style.display = '';
+    fsTimer.classList.add('is-error');
     eyeOpen.style.display = 'none'; eyeClosed.style.display = '';
     clockHand.setAttribute('points', '12 6 12 12 12 12');
     setUsed('-'); postRead.textContent = '-';
+    fsUsed.textContent = 'NaN';
   }
   function resetTimerNormal() {
-    postTimer.classList.remove('is-error');
+    postTimer.style.display = '';
+    fsTimer.style.display = '';
+    fsTimer.classList.remove('is-error');
     eyeOpen.style.display = ''; eyeClosed.style.display = 'none';
     clockHand.setAttribute('points', '12 6 12 12 16 14');
   }
