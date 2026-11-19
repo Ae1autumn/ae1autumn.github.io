@@ -1521,19 +1521,13 @@ window.__siteDataReady.then(function renderFeed() {
   }
 });
 
-/* 阅读量异步填充：失败时保持隐藏，不显示假数据 */
+/* 阅读量异步填充：失败时保持隐藏，不显示假数据；不做本地存储 */
 window.__siteDataReady.then(function hydrateViews() {
   var cfg = window.GOATCOUNTER;
   var els = document.querySelectorAll('[data-views]');
   if (!cfg || !cfg.code || !els.length) return;
 
   var base = 'https://' + cfg.code + '.goatcounter.com/counter/';
-  var now = Date.now();
-  var cache = null;
-  try { cache = JSON.parse(sessionStorage.getItem(cfg.cacheKey) || 'null'); } catch (e) {}
-  var fresh = cache && cache.d && (now - cache.t) < cfg.cacheTTL ? cache.d : null;
-  var data = fresh ? Object.assign({}, fresh) : {};
-  var total = fresh && cache.total != null ? String(cache.total) : null;
 
   /* 总访问量：跟在「n 篇」后面，取不到时连字符和数字一起隐藏 */
   function paintTotal(text) {
@@ -1544,7 +1538,6 @@ window.__siteDataReady.then(function hydrateViews() {
     totalEl.classList.remove('is-empty');
     sepEl.classList.remove('is-empty');
   }
-  if (total != null) paintTotal(total);
 
   function paint(slug, text) {
     var nodes = document.querySelectorAll('[data-views]');
@@ -1556,25 +1549,22 @@ window.__siteDataReady.then(function hydrateViews() {
     }
   }
 
-  var pending = [];
   var seen = {};
   for (var i = 0; i < els.length; i++) {
     var slug = els[i].getAttribute('data-views');
     if (!slug || seen[slug]) continue;
     seen[slug] = true;
-    if (data[slug] != null) { paint(slug, data[slug]); continue; }
-    pending.push(fetchCount(slug));
+    fetchCount(slug);
   }
 
   function fetchCount(slug) {
     var url = base + encodeURIComponent(typeof cfg.pathPrefix === 'string' ? cfg.pathPrefix + slug : '/' + slug) + '.json';
-    return fetch(url, { credentials: 'omit' }).then(function (r) {
+    fetch(url, { credentials: 'omit' }).then(function (r) {
       if (r.status === 404) return '0';   // 该路径还没有记录，视为 0
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json().then(function (d) { return d && d.count != null ? String(d.count) : null; });
     }).then(function (count) {
       if (count == null) return;
-      data[slug] = count;
       paint(slug, count);
     }).catch(function () { /* 网络或配置问题：保持隐藏 */ });
   }
@@ -1586,19 +1576,11 @@ window.__siteDataReady.then(function hydrateViews() {
       return r.json();
     }).then(function (d) {
       if (!d || d.count == null) return;
-      total = String(d.count);
-      paintTotal(total);
+      paintTotal(String(d.count));
     }).catch(function () { /* 取不到就不占位 */ });
   }
 
-  var totalPending = total != null ? null : fetchTotal();
-  var jobs = totalPending ? pending.concat([totalPending]) : pending;
-
-  Promise.all(jobs).then(function () {
-    try {
-      sessionStorage.setItem(cfg.cacheKey, JSON.stringify({ t: Date.now(), d: data, total: total }));
-    } catch (e) {}
-  });
+  fetchTotal();
 });
 
 /* 计数由 trackPostView 直接发往 GoatCounter，不再加载第三方脚本 */
