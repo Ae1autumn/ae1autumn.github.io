@@ -283,6 +283,7 @@ a{text-decoration:none}
 .feed-count,.feed-total{display:flex;align-items:center;gap:.3rem}
 .feed-count svg,.feed-total svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .feed-sep.is-empty,.feed-total.is-empty,.feed-count.is-empty{display:none}
+.icon-sprite{position:absolute;width:0;height:0;overflow:hidden}
 .cards{display:flex;flex-direction:column;gap:1.1rem}
 
 .card{
@@ -1030,6 +1031,16 @@ a{text-decoration:none}
 </head>
 <body>
 
+<svg class="icon-sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-eye" viewBox="0 0 24 24">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </symbol>
+  <symbol id="i-file" viewBox="0 0 24 24">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="12.5" x2="8" y2="12.5"/><line x1="14" y1="16" x2="8" y2="16"/><line x1="11" y1="9" x2="8" y2="9"/>
+  </symbol>
+</svg>
+
 <div class="page">
 
   <!-- TITLE BAR -->
@@ -1068,12 +1079,12 @@ a{text-decoration:none}
       <h2>全部文章</h2>
       <span class="feed-meta">
         <span class="feed-total is-empty" id="feed-total" aria-label="总浏览量">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg>
           <span class="feed-num" id="feed-total-num"></span>
         </span>
         <span class="feed-sep is-empty" id="feed-sep" aria-hidden="true">-</span>
         <span class="feed-count is-empty" id="feed-count" aria-label="总文章数">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-file"/></svg>
           <span class="feed-num" id="feed-count-num"></span>
         </span>
       </span>
@@ -1129,8 +1140,7 @@ a{text-decoration:none}
       </a>
       <button class="menu-link-btn menu-icon-btn" id="btn-read-speed" type="button" aria-label="阅读速度" title="阅读速度">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
+          <use href="#i-eye"/>
         </svg>
       </button>
     </div>
@@ -1151,7 +1161,7 @@ a{text-decoration:none}
         <span class="post-timer-sep">-</span>
         <svg class="post-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
           <g id="post-eye-open">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            <use href="#i-eye"/>
           </g>
           <g id="post-eye-closed" style="display:none">
             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
@@ -1291,8 +1301,7 @@ a{text-decoration:none}
         </button>
         <button class="copy-cell" data-copy="text" aria-label="复制纯文本">
           <svg viewBox="0 0 24 24">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="12.5" x2="8" y2="12.5"/><line x1="14" y1="16" x2="8" y2="16"/><line x1="11" y1="9" x2="8" y2="9"/>
+            <use href="#i-file"/>
           </svg>
         </button>
       </div>
@@ -1458,7 +1467,7 @@ window.formatTitle = function (value) {
 };
 
 window.__siteDataReady.then(function renderFeed() {
-  var EYE = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE = '<svg viewBox="0 0 24 24"><use href="#i-eye"/></svg>';
   var esc = window.escapeHTML;
 
   /* 置顶优先；多篇置顶按日期从新到旧，其余保持数组原序（sort 稳定） */
