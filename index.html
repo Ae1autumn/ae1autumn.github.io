@@ -470,7 +470,7 @@ a{text-decoration:none}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
 
-.post-reload-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.post-reload-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem}
 .post-reload-hint{font-size:.85rem;color:var(--text-3)}
 .post-reload-btn{
   border:var(--hairline) solid var(--border);border-radius:var(--radius);
@@ -1260,7 +1260,7 @@ a{text-decoration:none}
             <line x1="1" y1="1" x2="23" y2="23"/>
           </g>
         </svg>
-        <span class="post-timer-num" id="post-read">—</span>
+        <span class="post-timer-num" id="post-read">-</span>
       </div>
     </div>
 
@@ -3391,7 +3391,7 @@ window.__siteDataReady.then(function () {
     postHeaderRow.style.setProperty('--post-progress', '0%');
     postHeaderRow.classList.add('is-loading');
     resetTimerNormal();
-    setUsed('00'); postRead.textContent = '—';
+    setUsed('00'); postRead.textContent = '-';
 
     /* 加载进度：有 Content-Length 按字节进度，否则按已收字节渐近 90% */
     function setLoadProgress(pct) {
