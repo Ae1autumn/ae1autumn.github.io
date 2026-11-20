@@ -10,6 +10,8 @@
 4. issue 被删除（或关闭，且 --state=open）时，删除对应的 .md。
 5. 读取同级 articles/ 目录里的 .md，处理后写入 posts/，和 issue 文章一起合并进 data.jsonc。
 6. 把元数据写进 data.jsonc 的 posts 数组；其余配置和注释保持不动。
+7. data.jsonc 是构建产物，仓库里只存 data.config.jsonc。data.jsonc 不存在时
+   自动从 data.config.jsonc 初始化，再填入 posts。
 
 Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
 
@@ -948,6 +950,11 @@ def build_parser():
     parser.add_argument("--prune-unmanaged", action="store_true", help="删除 posts 里不是由本脚本管理的旧文章")
     parser.add_argument("--full", action="store_true", help="忽略 ETag，强制重新拉取")
     parser.add_argument("--dry-run", action="store_true", help="只打印改动，不写文件")
+    parser.add_argument(
+        "--config-file",
+        default=str(SCRIPT_DIR / "data.config.jsonc"),
+        help="data.jsonc 不存在时用来初始化的配置文件",
+    )
     return parser
 
 
@@ -962,6 +969,7 @@ def main():
     args.api_base = args.api_base.rstrip("/")
 
     data_file = Path(args.data_file).resolve()
+    config_file = Path(args.config_file).resolve()
     posts_dir = Path(args.posts_dir).resolve()
     state_file = Path(args.state_file).resolve()
     articles_dir = Path(args.articles_dir).resolve() if (args.articles_dir or "").strip() else None
@@ -1070,6 +1078,13 @@ def main():
     if data_file.exists():
         data_text = read_text(data_file)
         existing_posts = load_existing_posts(data_text)
+    elif config_file.exists() and config_file != data_file:
+        # data.jsonc 是构建产物：首次运行时用仓库里的配置文件初始化
+        data_text = read_text(config_file)
+        existing_posts = load_existing_posts(data_text)
+        if not args.dry_run:
+            atomic_write(data_file, data_text)
+            log(f"  从配置初始化 {data_file}")
     else:
         data_text = DEFAULT_DATA
         existing_posts = []
