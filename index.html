@@ -12,9 +12,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
 <style>
-/* Monaspace Xenon（可变字体）：全站等宽字体——代码块、行内代码、代码顶栏，
-   以及日期/标签/计时器/目录编号等元信息。钉在 1.400 版本（jsDelivr 永久缓存）；
-   约 570KB，首次出现等宽文本时下载，之后一年缓存 */
+/* Monaspace Xenon（可变字体）：只给代码用——代码块、行内代码、代码块顶栏。
+   钉在 1.400 版本（jsDelivr 永久缓存）；约 570KB，页面没有代码块就不会下载 */
 @font-face{
   font-family:"Monaspace Xenon";
   src:url("https://cdn.jsdelivr.net/gh/githubnext/monaspace@1.400/fonts/Web%20Fonts/Variable%20Web%20Fonts/Monaspace%20Xenon/Monaspace%20Xenon%20Var.woff2") format("woff2");
@@ -70,12 +69,11 @@
   --syn-type:  oklch(0.50 0.08 200);
 
   /* type */
-  /* 正文/标题默认 Times New Roman，系统没有时按 Times → 通用 serif 逐级回退；
+  /* 正文与标题统一 Times New Roman，系统没有时按 Times → 通用 serif 逐级回退；
      不要把 ui-serif / Georgia / 网络字体排在前面，否则 Times 永远不会被用到 */
-  --font-display: "Times New Roman", Times, serif;
   --font-body:    "Times New Roman", Times, serif;
-  /* 等宽：Monaspace Xenon 可变字体，代码（块内/行内/顶栏）与各类元信息标签共用；
-     末尾的 serif 给 Xenon 没有的汉字兜底，保持全站中文仍是衬线 */
+  /* 等宽：Monaspace Xenon 只给代码用（块内 / 行内 / 代码顶栏）；
+     其余日期、标签等元信息一律走 --font-body。末尾 serif 给代码里的汉字兜底 */
   --font-mono:    "Monaspace Xenon", ui-monospace, "SF Mono", Menlo, Consolas, monospace, serif;
   /* slogan 保留原来的展示字体，不参与全局字体统一 */
   --font-slogan:  "Cormorant Garamond", serif;
@@ -181,7 +179,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .title-bar-inner{display:flex;align-items:center;gap:.7rem;height:var(--header-h)}
 .site-icon{width:var(--nav-icon-size);height:var(--nav-icon-size);color:var(--accent);flex-shrink:0}
 .site-title{
-  font-family:var(--font-display);font-size:1.3rem;font-weight:500;
+  font-family:var(--font-body);font-size:1.3rem;font-weight:500;
   letter-spacing:.05em;color:var(--title);flex:1;min-width:0;
 }
 .title-actions{display:flex;align-items:center;gap:.15rem}
@@ -290,10 +288,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 @media (hover:hover){.sm-result:hover{transform:translateY(-1px)}}
 .sm-result-top{display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem}
-.sm-result-date{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);letter-spacing:.04em}
+.sm-result-date{font-family:var(--font-body);font-size:.66rem;color:var(--text-3);letter-spacing:.04em}
 .sm-result-sep{width:14px;height:1px;background:var(--border)}
 .sm-result-tag{
-  font-family:var(--font-mono);font-size:.62rem;color:var(--text-3);
+  font-family:var(--font-body);font-size:.62rem;color:var(--text-3);
   border:var(--hairline) solid var(--border);border-radius:5px;padding:.06rem .4rem;
   letter-spacing:.05em;text-transform:uppercase;
 }
@@ -310,7 +308,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 .slogan-rule::before{content:"";width:26px;height:1px;background:var(--accent)}
 .slogan-rule span{
-  font-family:var(--font-mono);font-size:.68rem;letter-spacing:.28em;
+  font-family:var(--font-body);font-size:.68rem;letter-spacing:.28em;
   text-transform:uppercase;color:var(--text-3);
 }
 .slogan-text{
@@ -327,9 +325,9 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   margin-bottom:1.4rem;padding-bottom:.6rem;
   border-bottom:var(--hairline) solid var(--border);
 }
-.feed-head h2{font-family:var(--font-mono);font-size:.72rem;font-weight:400;letter-spacing:.28em;text-transform:uppercase;color:var(--text-3)}
+.feed-head h2{font-family:var(--font-body);font-size:.72rem;font-weight:400;letter-spacing:.28em;text-transform:uppercase;color:var(--text-3)}
 .feed-meta{display:flex;align-items:center;gap:.5rem}
-.feed-count,.feed-total,.feed-sep{font-family:var(--font-mono);font-size:.72rem;color:var(--text-3)}
+.feed-count,.feed-total,.feed-sep{font-family:var(--font-body);font-size:.72rem;color:var(--text-3)}
 .feed-count,.feed-total{display:flex;align-items:center;gap:.3rem}
 .feed-count svg,.feed-total svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .feed-sep.is-empty,.feed-total.is-empty,.feed-count.is-empty{display:none}
@@ -360,7 +358,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 @media (hover:hover){.card:hover .card-corner{width:34px;height:34px}}
 .card-title{
-  font-family:var(--font-display);font-size:1.18rem;font-weight:500;
+  font-family:var(--font-body);font-size:1.18rem;font-weight:500;
   color:var(--title);margin-bottom:.55rem;
   white-space:nowrap;overflow-x:auto;overflow-y:hidden;
 }
@@ -368,11 +366,11 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .card-title.fade-l{-webkit-mask-image:linear-gradient(to right,transparent,#000 14px);mask-image:linear-gradient(to right,transparent,#000 14px)}
 .card-title.fade-r{-webkit-mask-image:linear-gradient(to left,transparent,#000 14px);mask-image:linear-gradient(to left,transparent,#000 14px)}
 .card-title.fade-l.fade-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
-/* 标题里的数字改用正文字体，避免显示字体的旧式数字 */
-.title-num{font-family:var(--font-body);font-variant-numeric:lining-nums}
+/* 标题里的数字统一用等高数字 */
+.title-num{font-variant-numeric:lining-nums}
 .card-tags{display:flex;flex-wrap:nowrap;gap:.4rem;margin-bottom:0;min-width:0;overflow-x:auto}
 .card-tag{
-  font-family:var(--font-mono);font-size:.68rem;letter-spacing:.05em;
+  font-family:var(--font-body);font-size:.68rem;letter-spacing:.05em;
   color:var(--text-2);background:var(--bg);
   border:var(--hairline) solid var(--border);border-radius:6px;
   padding:.14rem .5rem;flex-shrink:0;
@@ -388,9 +386,9 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   text-align:center;
 }
 .card-meta{display:flex;align-items:center;gap:.75rem}
-.card-date{font-family:var(--font-mono);font-size:.74rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
+.card-date{font-family:var(--font-body);font-size:.74rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
 .card-stats{display:flex;align-items:center;gap:1rem;margin-left:auto;flex-shrink:0}
-.card-stat{display:flex;align-items:center;gap:.32rem;font-family:var(--font-mono);font-size:.74rem;color:var(--text-3)}
+.card-stat{display:flex;align-items:center;gap:.32rem;font-family:var(--font-body);font-size:.74rem;color:var(--text-3)}
 .card-stat.is-empty{display:none}
 .card-stat svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
@@ -492,7 +490,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 #footprint-modal.is-open .fp-dialog{transform:translateY(0) scale(1)}
 .fp-head{display:flex;align-items:center;gap:.5rem;flex-shrink:0;min-height:32px}
 .fp-title{
-  flex:1;font-family:var(--font-mono);font-size:.72rem;font-weight:400;
+  flex:1;font-family:var(--font-body);font-size:.72rem;font-weight:400;
   letter-spacing:.28em;text-transform:uppercase;color:var(--text-3);
 }
 .fp-clear,.fp-close{
@@ -510,7 +508,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .fp-close{width:32px;flex:0 0 32px}
 .fp-summary{
   flex-shrink:0;padding:0 .15rem;
-  font-family:var(--font-mono);font-size:.68rem;color:var(--text-3);letter-spacing:.04em;
+  font-family:var(--font-body);font-size:.68rem;color:var(--text-3);letter-spacing:.04em;
 }
 .fp-summary:empty{display:none}
 .fp-list{display:flex;flex-direction:column;overflow-y:auto;min-height:0;padding:.1rem}
@@ -528,16 +526,16 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 @media (hover:hover){.fp-item:hover{transform:translateY(-1px)}}
 .fp-item-main{flex:1;min-width:0}
 .fp-item-title{
-  display:block;font-family:var(--font-display);font-size:.95rem;color:var(--title);
+  display:block;font-family:var(--font-body);font-size:.95rem;color:var(--title);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .fp-item-meta{
   display:flex;align-items:center;gap:.45rem;margin-top:.22rem;
-  font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);letter-spacing:.04em;
+  font-family:var(--font-body);font-size:.66rem;color:var(--text-3);letter-spacing:.04em;
 }
 .fp-item-status{
   margin-left:auto;flex-shrink:0;white-space:nowrap;
-  font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);letter-spacing:.04em;
+  font-family:var(--font-body);font-size:.66rem;color:var(--text-3);letter-spacing:.04em;
 }
 .fp-item.is-done .fp-item-meta{color:var(--text-2)}
 .fp-item.is-done .fp-item-status{color:var(--text-2)}
@@ -614,10 +612,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 /* 加载中的进度条：由 fetch 实际进度驱动（见 JS setLoadProgress），无无限动画 */
 .post-header-title{
-  font-family:var(--font-display);font-size:1rem;color:var(--text-2);
+  font-family:var(--font-body);font-size:1rem;color:var(--text-2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
 }
-.post-timer{display:flex;align-items:center;gap:0;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
+.post-timer{display:flex;align-items:center;gap:0;font-family:var(--font-body);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
@@ -642,7 +640,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-reload-hint{font-size:.85rem;color:var(--text-3)}
 .post-reload-btn{
   border:var(--hairline) solid var(--border);border-radius:var(--radius);
-  color:var(--text-2);font-family:var(--font-mono);font-size:.8rem;letter-spacing:.08em;
+  color:var(--text-2);font-family:var(--font-body);font-size:.8rem;letter-spacing:.08em;
   padding:.5rem 1.3rem;transition:border-color .2s,color .2s;
 }
 
@@ -671,7 +669,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   white-space:nowrap;
   overflow-x:auto;overflow-y:hidden;
   scrollbar-width:none;
-  font-family:var(--font-mono);font-size:.72rem;color:var(--text-2);letter-spacing:.02em;
+  font-family:var(--font-body);font-size:.72rem;color:var(--text-2);letter-spacing:.02em;
   flex:0 1 auto;min-width:0;max-width:100%;
   transition:max-width .35s var(--ease-out),opacity .25s;
 }
@@ -700,7 +698,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   .chap-text.chap-in{animation:none}
 }
 .post-chapter-sep{
-  font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);flex-shrink:0;
+  font-family:var(--font-body);font-size:.72rem;color:var(--text-3);flex-shrink:0;
   overflow:hidden;max-width:2.2em;padding:0 .5em;white-space:nowrap;
   transition:max-width .35s var(--ease-out),opacity .25s,padding .35s var(--ease-out);
 }
@@ -712,7 +710,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-chapters-wrap.has-child.is-split{width:50%}
 .post-chapters-wrap.has-child.is-split .post-chapter-block{flex:1 1 0}
 .post-chapters-hint{
-  font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;
+  font-family:var(--font-body);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;
   transition:opacity .25s;
 }
 .post-chapters-hint.collapsed{opacity:0;max-width:0;overflow:hidden}
@@ -743,7 +741,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
      计时器的实际宽度（数字位数、代码图标切换、字体加载都会变）由 JS 写入 --fs-timer-w，
      不再用固定值估算，避免标题过长时被算宽而挤到计时器 */
   left:var(--panel-gap);max-width:calc(100vw - var(--fs-timer-w, 64px) - var(--panel-gap) * 4);overflow:hidden;cursor:pointer;
-  font-family:var(--font-mono);font-size:.72rem;letter-spacing:.02em;color:var(--text-2);
+  font-family:var(--font-body);font-size:.72rem;letter-spacing:.02em;color:var(--text-2);
   transition:border-color .18s;touch-action:manipulation;
 }
 /* 阅读进度：背景填充（宽度由 JS 写入 --fs-progress） */
@@ -796,7 +794,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   /* 固定 1rem，与正文两行一致；暂无变量，先硬编码，日后统一替换。
      两态同值且不参与过渡，避免切换时 padding 与内容宽度互相拉扯产生弹跳 */
   padding:0 1rem;
-  font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
+  font-family:var(--font-body);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
 }
 .fs-timer svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .fs-timer.is-error svg{display:none}
@@ -813,7 +811,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 
 /* markdown 排版 */
 .post-content h1,.post-content h2,.post-content h3,.post-content h4{
-  font-family:var(--font-display);font-weight:500;color:var(--title);
+  font-family:var(--font-body);font-weight:500;color:var(--title);
   margin:2.4rem 0 .9rem;scroll-margin-top:1rem;
   font-variant-numeric:lining-nums;
 }
@@ -846,7 +844,8 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   display:flex;align-items:center;justify-content:space-between;gap:var(--panel-gap);
   height:var(--control-h);padding:0 var(--panel-gap);
   border-bottom:var(--hairline) solid var(--border);
-  font-family:var(--font-mono);font-size:.72rem;line-height:1;color:var(--text-3);
+  /* 头栏用正文/标题字体，只有代码正文是 Xenon */
+  font-family:var(--font-body);font-size:.72rem;line-height:1;color:var(--text-3);
   cursor:pointer;user-select:none;-webkit-user-select:none;
 }
 .post-content .code-toggle{
@@ -916,7 +915,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content li > p + p{display:block;margin:.5rem 0 0}
 
 /* markdown 补充：表格 / 任务列表 / 删除线 / 深级标题 */
-.post-content h5,.post-content h6{font-family:var(--font-display);font-weight:500;color:var(--text-2);margin:2rem 0 .8rem;scroll-margin-top:1rem;font-variant-numeric:lining-nums}
+.post-content h5,.post-content h6{font-family:var(--font-body);font-weight:500;color:var(--text-2);margin:2rem 0 .8rem;scroll-margin-top:1rem;font-variant-numeric:lining-nums}
 .post-content h5{font-size:.95rem}
 .post-content h6{font-size:.88rem;color:var(--text-3)}
 .post-content .table-wrap{
@@ -1019,7 +1018,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content .katex-display{margin:1.4rem 0;overflow-x:auto;overflow-y:hidden;padding:.2rem 0}
 
 /* 脚注：默认折叠，外壳与顶栏复用长代码块样式，但不绑定复制 */
-.post-content sup a[data-footnote-ref]{font-family:var(--font-mono);font-size:.72em;padding:0 .15em}
+.post-content sup a[data-footnote-ref]{font-family:var(--font-body);font-size:.72em;padding:0 .15em}
 .post-content .footnotes{margin:2.6rem 0 0;font-size:.82rem;color:var(--text-3)}
 .post-content .footnotes.is-collapsed .fn-body{display:none}
 .post-content .footnotes.is-collapsed .code-head{border-bottom:none}
@@ -1082,7 +1081,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   padding:.5rem 1rem .4rem;
   border-bottom:var(--hairline) solid var(--border);flex-shrink:0;
 }
-.panel-title{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;color:var(--text-3)}
+.panel-title{font-family:var(--font-body);font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;color:var(--text-3)}
 .panel-head-actions{display:flex;align-items:center;gap:.2rem;flex-shrink:0}
 .panel-close{width:var(--nav-icon-size);height:var(--nav-icon-size);border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;color:var(--text-3);transition:color var(--transition-fast),background-color var(--transition-fast)}
 .panel-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
@@ -1097,7 +1096,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   font-size:.85rem;line-height:1.5;color:var(--text-2);/* 目录项：与文内搜索结果项一致，统一 1.5 */
   transition:background-color .15s,color .15s;
 }
-.toc-item .toc-no{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);flex-shrink:0;letter-spacing:.03em}
+.toc-item .toc-no{font-family:var(--font-body);font-size:.66rem;color:var(--text-3);flex-shrink:0;letter-spacing:.03em}
 /* 目录文字单行横向滚动；编号固定在左侧，不跟着滚走 */
 .toc-item .toc-scroll{
   flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;
@@ -1130,7 +1129,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   height:var(--control-h);padding:0 1rem;border-bottom:var(--hairline) solid var(--border);flex-shrink:0;
 }
 .search-meta.has-results{border-bottom:none}
-.search-count{font-family:var(--font-mono);font-size:.7rem;color:var(--text-3);letter-spacing:.05em;min-height:1em}
+.search-count{font-family:var(--font-body);font-size:.7rem;color:var(--text-3);letter-spacing:.05em;min-height:1em}
 .search-nav{display:flex;gap:.15rem}
 .search-nav .icon-btn{width:var(--nav-icon-size);height:var(--nav-icon-size)}
 .search-nav .icon-btn svg{width:14px;height:14px}
@@ -1241,7 +1240,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   transition:color .18s,background-color .18s;
 }
 .copy-cell svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.copy-cell .ic-t{font-family:var(--font-mono);font-size:8.5px;font-weight:700;stroke:none;fill:currentColor}
+.copy-cell .ic-t{font-family:var(--font-body);font-size:8.5px;font-weight:700;stroke:none;fill:currentColor}
 /* 复制成功：原位替换为绿框+深绿底+对勾 */
 .copy-main.is-copied,.copy-cell.is-copied{
   border-color:color-mix(in srgb,var(--success) 62%,transparent)!important;
@@ -1478,7 +1477,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
       <div class="sm-tabs" id="sm-tabs" role="tablist">
         <div class="sm-tab-slider" id="sm-tab-slider" aria-hidden="true"></div>
         <button class="sm-tab-btn is-active" data-mode="title" role="tab" aria-selected="true" aria-label="按标题搜索" title="按标题搜索">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-mono)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-body)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
         </button>
         <button class="sm-tab-btn" data-mode="date" role="tab" aria-selected="false" aria-label="按日期搜索" title="按日期搜索">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.1"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><rect x="4" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/><rect x="8.9" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/></svg>
@@ -1694,7 +1693,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
         <div class="sr-filter-tabs" id="sr-filter-tabs" role="tablist" aria-label="搜索结果过滤">
           <div class="sr-filter-slider" id="sr-filter-slider" aria-hidden="true"></div>
           <button class="sr-filter-btn is-active" data-filter="body" role="tab" aria-selected="true" aria-label="正文" title="正文">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-mono)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-body)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
           </button>
           <button class="sr-filter-btn" data-filter="code" role="tab" aria-selected="false" aria-label="代码" title="代码">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="7 7 2 12 7 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 7 22 12 17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="5" x2="10" y2="19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
