@@ -127,7 +127,9 @@ body{
 }
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 a{text-decoration:none}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+:focus,:focus-visible{outline:none}
+html.using-keyboard :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 ::selection{background:var(--accent);color:var(--bg)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
@@ -1168,6 +1170,28 @@ a{text-decoration:none}
 <base target="_blank">
 </head>
 <body>
+
+<script>
+/* 键盘导航检测：仅在用键盘操作时给 <html> 加 using-keyboard，用于显示焦点环 */
+(function () {
+  var root = document.documentElement, kbd = false;
+  var NAV_KEYS = {
+    Tab: 1, ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1,
+    Home: 1, End: 1, PageUp: 1, PageDown: 1
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey || kbd) return;
+    if (NAV_KEYS[e.key]) { kbd = true; root.classList.add('using-keyboard'); }
+  }, true);
+  function off() {
+    if (!kbd) return;
+    kbd = false; root.classList.remove('using-keyboard');
+  }
+  document.addEventListener('pointerdown', off, true);
+  document.addEventListener('mousedown', off, true);
+  document.addEventListener('touchstart', off, { capture: true, passive: true });
+})();
+</script>
 
 <svg class="icon-sprite" aria-hidden="true" focusable="false">
   <symbol id="i-eye" viewBox="0 0 24 24">
