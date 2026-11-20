@@ -28,9 +28,10 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
 --------------------
     articles/某篇文章.md            → posts/某篇文章.md
     articles/某篇文章.pin.md        → 置顶，输出为 posts/某篇文章.md
+    articles/某篇文章.hide.md       → 不显示在首页，但文件照常生成、可直接访问
 
-- 文件名去掉 .md / .pin 后作为 slug（会自动 slugify）。
-- 带 .pin 后缀表示置顶。
+- 文件名去掉 .md / .pin / .hide 后作为 slug（会自动 slugify），后缀顺序随意。
+- 带 .pin 后缀表示置顶；带 .hide 后缀表示隐藏（不进 data.jsonc，但 posts/ 里仍有文件）。
 - 日期优先取状态文件里记录过的日期，其次取文件创建时间（Linux/CI 上取 git 首次提交日期），
   也可以用 frontmatter 的 date 覆盖。
 - 标题取 frontmatter 的 title；没有则取正文第一个一级标题；再没有就用文件名。
@@ -536,7 +537,7 @@ def allocate_slug(base, used):
 
 
 def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, excerpt_length=120):
-    """把 articles/ 里的一个 md 转换成 (元数据 dict, Markdown 文本, 文件相对路径, 源文本)。"""
+    """把 articles/ 里的一个 md 转换成 (元数据 dict, Markdown 文本, 文件相对路径, 源文本, 是否隐藏)。"""
     raw = read_text(src_path)
     front, body_raw = parse_frontmatter(raw)
     md_text = clean_body(body_raw)
@@ -544,9 +545,17 @@ def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, e
     stem = src_path.name
     if stem.lower().endswith(".md"):
         stem = stem[:-3]
-    pin = stem.lower().endswith(".pin")
-    if pin:
-        stem = stem[:-4]
+    pin = hidden = False
+    while True:
+        low = stem.lower()
+        if low.endswith(".pin"):
+            pin = True
+            stem = stem[:-4]
+        elif low.endswith(".hide"):
+            hidden = True
+            stem = stem[:-5]
+        else:
+            break
 
     base_slug = slugify(front.get("slug") or stem)
     if not base_slug:
@@ -593,7 +602,7 @@ def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, e
     }
     if pin:
         meta["pin"] = True
-    return meta, md_text, rel, raw
+    return meta, md_text, rel, raw, hidden
 
 
 def issue_to_post(issue, args, state, data_dir, posts_dir):
@@ -706,7 +715,7 @@ def sync_articles(articles_dir, state, data_dir, posts_dir, used_slugs, dry_run=
         src_rel = src_path.relative_to(articles_dir).as_posix()
         seen.add(src_rel)
 
-        meta, md_text, rel, raw = article_to_post(
+        meta, md_text, rel, raw, hidden = article_to_post(
             src_path, src_rel, state, data_dir, posts_dir, used_slugs, excerpt_length
         )
         target = data_dir / rel
@@ -732,7 +741,7 @@ def sync_articles(articles_dir, state, data_dir, posts_dir, used_slugs, dry_run=
         if old_file and old_file != rel:
             remove_managed_file(old_file, data_dir, posts_dir, dry_run)
 
-        state["articles"][src_rel] = {
+        entry = {
             "file": rel,
             "slug": meta["slug"],
             "date": meta["date"],
@@ -740,10 +749,23 @@ def sync_articles(articles_dir, state, data_dir, posts_dir, used_slugs, dry_run=
             "source_sha256": sha256_text(raw),
             "meta": meta,
         }
-        posts.append(normalize_post(meta))
+        if hidden:
+            entry["hidden"] = True
+        state["articles"][src_rel] = entry
+        if not hidden:
+            posts.append(normalize_post(meta))
 
+    # 改名（比如 x.md → x.hide.md）时输出文件不变，不能把它当成已删除再删掉
+    kept_files = {
+        info.get("file")
+        for src_rel, info in state["articles"].items()
+        if src_rel in seen and info.get("file")
+    }
     for src_rel in sorted(set(state["articles"]) - seen):
         info = state["articles"].pop(src_rel) or {}
+        if info.get("file") in kept_files:
+            log(f"文章改名为：{src_rel}（输出文件 {info.get('file')} 仍在使用）")
+            continue
         log(f"文章已删除：{src_rel}：{info.get('file', '')}")
         remove_managed_file(info.get("file"), data_dir, posts_dir, dry_run)
         removed += 1
