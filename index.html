@@ -988,7 +988,6 @@ a{text-decoration:none}
   scrollbar-width:none;
 }
 .sr-scroll::-webkit-scrollbar{display:none}
-.sr-scroll .sr-pad{display:inline-block;width:50%}
 .sr-scroll b{color:var(--accent);font-weight:600}
 .sr-item.is-active .sr-scroll b{color:inherit;text-decoration:underline;text-underline-offset:3px}
 /* 截断边缘渐隐 */
@@ -3663,14 +3662,6 @@ window.__siteDataReady.then(function () {
     resetHitSelection();
   }
 
-  /* 同一片段内命中较多时，结果列表只占一行；两侧留白让首个命中词能尽量居中 */
-  function makeScrollPad() {
-    const pad = document.createElement('span');
-    pad.className = 'sr-pad';
-    pad.setAttribute('aria-hidden', 'true');
-    return pad;
-  }
-
   /* 横向对齐到当前命中词 */
   function centerScrollHit(scroll, b) {
     if (!scroll || !b) return;
@@ -3709,7 +3700,6 @@ window.__siteDataReady.then(function () {
       item.className = 'sr-item';
       const scroll = document.createElement('span');
       scroll.className = 'sr-scroll';
-      scroll.appendChild(makeScrollPad());
       let pos = 0;
       group.positions.forEach(function (activePos) {
         const hit = hitCtx[activeHits[activePos]];
@@ -3720,7 +3710,6 @@ window.__siteDataReady.then(function () {
         pos = hit.end;
       });
       scroll.appendChild(document.createTextNode(hc.context.slice(pos)));
-      scroll.appendChild(makeScrollPad());
       item.appendChild(scroll);
       item.__positions = group.positions;
       item.addEventListener('click', function () { jumpToHit(group.positions[0]); });
