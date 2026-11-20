@@ -629,12 +629,11 @@ a{text-decoration:none}
 .post-chapters-wrap.is-empty .post-chapters-hint{opacity:0}
 .fs-timer{
   right:var(--panel-gap);flex-shrink:0;gap:0;
+  /* 固定 1rem，与正文两行一致；暂无变量，先硬编码，日后统一替换。
+     两态同值且不参与过渡，避免切换时 padding 与内容宽度互相拉扯产生弹跳 */
+  padding:0 1rem;
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
-  transition:padding .32s var(--ease-out);
 }
-/* 全屏胶囊代码态收窄到图标，左右内边距与正文两行的 1rem 保持一致；
-   该值暂无变量，先硬编码，日后统一替换为变量 */
-.fs-timer.is-code{padding:0 1rem}
 .fs-timer svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .fs-timer.is-error svg{display:none}
 /* 全屏时 TOC 标题栏额外显示「退出全屏」 */
@@ -2966,10 +2965,10 @@ window.__siteDataReady.then(function () {
       !postHeaderRow.classList.contains('is-loading');
   }
   function timerLiveWidth(live) {
-    /* 收起后 live 是 0 宽并右对齐，scrollWidth 不可靠；按子项实测宽度求和 */
+    /* 收起后 live 是 0 宽并右对齐，scrollWidth 不可靠；按子项实测宽度（含小数）求和 */
     let w = 0;
     const kids = live.children;
-    for (let i = 0; i < kids.length; i++) w += kids[i].offsetWidth;
+    for (let i = 0; i < kids.length; i++) w += kids[i].getBoundingClientRect().width;
     if (kids.length > 1) {
       const gap = parseFloat(getComputedStyle(live).columnGap) || 0;
       w += gap * (kids.length - 1);
@@ -2980,7 +2979,7 @@ window.__siteDataReady.then(function () {
     const timer = isFullscreen ? fsTimer : postTimer;
     const live  = isFullscreen ? fsTimerLive : postTimerLive;
     /* 收起/展开用实测宽度做上限，避免动画从 none 直接跳到 0 */
-    timer.style.setProperty('--timer-live-w', (timerLiveWidth(live) + 1) + 'px');
+    timer.style.setProperty('--timer-live-w', timerLiveWidth(live) + 'px');
   }
   function replayTimerRoll(els) {
     els.forEach(function (el) {
