@@ -8,9 +8,20 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cg fill='%23000000' stroke='%23ff0000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='rotate(-20 40 15)'%3E%3Crect x='30' y='5' width='20' height='70' rx='10' ry='10'/%3E%3C/g%3E%3Cg transform='rotate(20 40 15)'%3E%3Crect x='30' y='5' width='20' height='70' rx='10' ry='10'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
 <style>
+/* Monaspace Xenon（可变字体）：全站等宽字体——代码块、行内代码、代码顶栏，
+   以及日期/标签/计时器/目录编号等元信息。钉在 1.400 版本（jsDelivr 永久缓存）；
+   约 570KB，首次出现等宽文本时下载，之后一年缓存 */
+@font-face{
+  font-family:"Monaspace Xenon";
+  src:url("https://cdn.jsdelivr.net/gh/githubnext/monaspace@1.400/fonts/Web%20Fonts/Variable%20Web%20Fonts/Monaspace%20Xenon/Monaspace%20Xenon%20Var.woff2") format("woff2");
+  font-weight:200 800;
+  font-style:normal;
+  font-display:swap;
+}
 :root{
   /* primitives (OKLCH) */
   --p-paper:      oklch(0.955 0.014 92);
@@ -59,11 +70,13 @@
   --syn-type:  oklch(0.50 0.08 200);
 
   /* type */
-  /* 默认用 Times New Roman，系统没有时按 Times → 通用 serif 逐级回退；
+  /* 正文/标题默认 Times New Roman，系统没有时按 Times → 通用 serif 逐级回退；
      不要把 ui-serif / Georgia / 网络字体排在前面，否则 Times 永远不会被用到 */
   --font-display: "Times New Roman", Times, serif;
   --font-body:    "Times New Roman", Times, serif;
-  --font-mono:    "Times New Roman", Times, serif;
+  /* 等宽：Monaspace Xenon 可变字体，代码（块内/行内/顶栏）与各类元信息标签共用；
+     末尾的 serif 给 Xenon 没有的汉字兜底，保持全站中文仍是衬线 */
+  --font-mono:    "Monaspace Xenon", ui-monospace, "SF Mono", Menlo, Consolas, monospace, serif;
   /* slogan 保留原来的展示字体，不参与全局字体统一 */
   --font-slogan:  "Cormorant Garamond", serif;
 
@@ -812,7 +825,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content p{font-size:.95rem;color:var(--text-2);margin-bottom:1.1rem;letter-spacing:.01em}
 .post-content strong{color:var(--text);font-weight:600}
 .post-content code{font-family:var(--font-mono);font-size:.8rem;background:var(--surface);border:var(--hairline) solid var(--border);border-radius:6px;padding:.12em .4em}
-.post-content pre{background:var(--surface);border:var(--hairline) solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem;overflow-x:auto;margin:0 0 1.2rem}
+.post-content pre{font-family:var(--font-mono);background:var(--surface);border:var(--hairline) solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem;overflow-x:auto;margin:0 0 1.2rem}
 .post-content pre code{background:none;border:none;padding:0;border-radius:0}
 
 /* 代码块折叠：高度超过正文容器的 <pre> 才会被包进 .code-block，短代码块保持原样
