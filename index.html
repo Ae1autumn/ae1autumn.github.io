@@ -465,17 +465,24 @@ a{text-decoration:none}
   font-family:var(--font-display);font-size:1rem;color:var(--text-2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
 }
-.post-timer{display:flex;align-items:center;gap:.32rem;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
+.post-timer{position:relative;display:flex;align-items:center;gap:.32rem;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
-/* 长代码块占满正文：时钟换成 </>，表示当前不计阅读时长 */
-.post-timer-code,.fs-timer-code{display:none}
-.post-timer.is-code .post-timer-clock,
-.fs-timer.is-code .fs-timer-clock{display:none}
+/* 长代码块内：整个时间指示器交叉淡出，只留居中的 </> */
+.post-timer-live,.fs-timer-live{
+  display:flex;align-items:center;gap:.32rem;
+  transition:opacity .2s var(--ease-out),transform .2s var(--ease-out);
+}
+.post-timer-code,.fs-timer .fs-timer-code{
+  position:absolute;inset:0;margin:auto;width:16px;height:16px;
+  opacity:0;transform:scale(.82);pointer-events:none;
+  transition:opacity .2s var(--ease-out),transform .2s var(--ease-out);
+}
+.post-timer.is-code .post-timer-live,
+.fs-timer.is-code .fs-timer-live{opacity:0;transform:scale(.94)}
 .post-timer.is-code .post-timer-code,
-.fs-timer.is-code:not(.is-error) .fs-timer-code{display:block;animation:timer-code-in .18s var(--ease-out)}
-@keyframes timer-code-in{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:scale(1)}}
+.fs-timer.is-code:not(.is-error) .fs-timer-code{opacity:1;transform:scale(1)}
 
 .post-reload-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem}
 .post-reload-hint{font-size:.85rem;color:var(--text-3)}
@@ -1248,28 +1255,30 @@ a{text-decoration:none}
     <div class="post-header-row" id="post-header-row">
       <span class="post-header-title" id="post-header-title"></span>
       <div class="post-timer" id="post-timer">
-        <svg class="post-timer-icon post-timer-clock" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline id="post-clock-hand" points="12 6 12 12 16 14"/>
-        </svg>
+        <span class="post-timer-live">
+          <svg class="post-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline id="post-clock-hand" points="12 6 12 12 16 14"/>
+          </svg>
+          <span class="post-timer-num" id="post-used">00</span>
+          <span class="post-timer-sep">-</span>
+          <svg class="post-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <g id="post-eye-open">
+              <use href="#i-eye"/>
+            </g>
+            <g id="post-eye-closed" style="display:none">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </g>
+          </svg>
+          <span class="post-timer-num" id="post-read">-</span>
+        </span>
         <svg class="post-timer-icon post-timer-code" viewBox="0 0 24 24" aria-hidden="true">
           <polyline points="8 7 3 12 8 17"/>
           <polyline points="16 7 21 12 16 17"/>
           <line x1="14" y1="5" x2="10" y2="19"/>
         </svg>
-        <span class="post-timer-num" id="post-used">00</span>
-        <span class="post-timer-sep">-</span>
-        <svg class="post-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <g id="post-eye-open">
-            <use href="#i-eye"/>
-          </g>
-          <g id="post-eye-closed" style="display:none">
-            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-            <line x1="1" y1="1" x2="23" y2="23"/>
-          </g>
-        </svg>
-        <span class="post-timer-num" id="post-read">-</span>
       </div>
     </div>
 
@@ -1306,13 +1315,15 @@ a{text-decoration:none}
     </button>
 
     <div class="fs-float fs-timer" id="fs-timer" aria-label="已用时间">
-      <svg class="fs-timer-clock" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="fs-timer-live">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="fs-used">00</span>
+      </span>
       <svg class="fs-timer-code" viewBox="0 0 24 24" aria-hidden="true">
         <polyline points="8 7 3 12 8 17"/>
         <polyline points="16 7 21 12 16 17"/>
         <line x1="14" y1="5" x2="10" y2="19"/>
       </svg>
-      <span id="fs-used">00</span>
     </div>
   </div>
   <div id="panel-overlay"></div>
@@ -2956,17 +2967,16 @@ window.__siteDataReady.then(function () {
     postTimer.classList.remove('is-code');
     fsTimer.classList.remove('is-code');
   }
-  /* 正文可视区完全落在一个高于可视区的代码块内时：暂停计时并换用代码图标 */
+  /* 阅读判定线落在一个高于可视区的代码块内时：暂停计时并换用代码图标 */
   function updateCodeReading() {
     let inCode = false;
     const viewH = postContent.clientHeight;
     if (currentSlug && !loadFailed && !isEmptyPost && viewH > 0) {
-      const vr = postContent.getBoundingClientRect();
-      const viewTop = vr.top + 1, viewBottom = vr.top + viewH - 1;
+      const lineY = getReadingLineY();
       const blocks = postContent.querySelectorAll('.code-block');
       for (let i = 0; i < blocks.length; i++) {
         const r = blocks[i].getBoundingClientRect();
-        if (r.height > viewH && r.top <= viewTop && r.bottom >= viewBottom) { inCode = true; break; }
+        if (r.height > viewH && r.top <= lineY && r.bottom >= lineY) { inCode = true; break; }
       }
     }
     setCodeReading(inCode);
@@ -3135,16 +3145,19 @@ window.__siteDataReady.then(function () {
       syncTocActive(true);
     }
   }
-  function getCurrentHeadings() {
+  function getReadingLineY() {
     const containerTop = postContent.getBoundingClientRect().top;
-    /* 识别线随阅读进度下移：进度 0 时距顶 60px，进度 100% 时贴到容器底部，
+    /* 判定线随阅读进度下移：进度 0 时距顶 60px，进度 100% 时贴到容器底部，
        保证贴近底部的章节也能被识别 */
     const max = postContent.scrollHeight - postContent.clientHeight;
     const prog = max > 0 ? Math.min(Math.max(postContent.scrollTop / max, 0), 1) : 1;
-    const threshold = 60 + (postContent.clientHeight - 60) * prog;
+    return containerTop + 60 + (postContent.clientHeight - 60) * prog;
+  }
+  function getCurrentHeadings() {
+    const lineY = getReadingLineY();
     let idx = -1;
     for (let i = 0; i < headings.length; i++) {
-      if (headings[i].el.getBoundingClientRect().top - containerTop <= threshold) idx = i;
+      if (headings[i].el.getBoundingClientRect().top <= lineY) idx = i;
       else break;
     }
     if (idx < 0) return { parent: '', child: '', idx: -1 };
