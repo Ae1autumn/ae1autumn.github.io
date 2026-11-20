@@ -31,7 +31,8 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
     articles/某篇文章.hide.md       → 不显示在首页，但文件照常生成、可直接访问
 
 - 文件名去掉 .md / .pin / .hide 后作为 slug（会自动 slugify），后缀顺序随意。
-- 带 .pin 后缀表示置顶；带 .hide 后缀表示隐藏（不进 data.jsonc，但 posts/ 里仍有文件）。
+- 带 .pin 后缀表示置顶；带 .hide 后缀表示隐藏：不进首页列表，但会写进
+  data.jsonc 的 hiddenPosts，仍可用 #/post/<slug> 打开（走站内渲染器）。
 - 日期优先取状态文件里记录过的日期，其次取文件创建时间（Linux/CI 上取 git 首次提交日期），
   也可以用 frontmatter 的 date 覆盖。
 - 标题取 frontmatter 的 title；没有则取正文第一个一级标题；再没有就用文件名。
@@ -88,6 +89,8 @@ DEFAULT_API_BASE = "https://api.github.com"
 
 MARK_START = "// >>> issue-sync:posts:start"
 MARK_END = "// <<< issue-sync:posts:end"
+HIDDEN_MARK_START = "// >>> issue-sync:hidden:start"
+HIDDEN_MARK_END = "// <<< issue-sync:hidden:end"
 
 FRONTMATTER_RE = re.compile(r"\A---[ \t]*\n([\s\S]*?)\n---[ \t]*(?:\n|$)")
 
@@ -95,6 +98,10 @@ DEFAULT_DATA = """{
   "posts": [
     // >>> issue-sync:posts:start
     // <<< issue-sync:posts:end
+  ],
+  "hiddenPosts": [
+    // >>> issue-sync:hidden:start
+    // <<< issue-sync:hidden:end
   ],
 
   // ═══ 阅读量（GoatCounter）═══
@@ -223,11 +230,11 @@ def parse_jsonc(text):
 
 # ───────────────────── data.jsonc 的定位与改写 ─────────────────────
 
-def find_posts_array(text):
-    """返回 "posts": [ 的 '[' 位置和与之匹配的 ']' 位置。"""
-    m = re.search(r'"posts"\s*:\s*\[', text)
+def find_array_span(text, key):
+    """返回 "key": [ 的 '[' 位置和与之匹配的 ']' 位置；找不到返回 None。"""
+    m = re.search(r'"%s"\s*:\s*\[' % re.escape(key), text)
     if not m:
-        fail('data.jsonc 里找不到 "posts": [ ... ]')
+        return None
     open_pos = text.index("[", m.start())
     depth = 1
     i = open_pos + 1
@@ -261,12 +268,12 @@ def find_posts_array(text):
             if depth == 0:
                 return open_pos, i
         i += 1
-    fail('data.jsonc 的 "posts" 数组没有闭合')
+    fail(f'data.jsonc 的 "{key}" 数组没有闭合')
 
 
-def locate_markers(text):
-    start = text.find(MARK_START)
-    end = text.find(MARK_END)
+def locate_markers(text, start_mark=MARK_START, end_mark=MARK_END):
+    start = text.find(start_mark)
+    end = text.find(end_mark)
     if start >= 0 and end >= 0 and end > start:
         return start, end
     if start >= 0 or end >= 0:
@@ -274,19 +281,26 @@ def locate_markers(text):
     return None
 
 
-def ensure_markers(text):
-    """没有标记时，在 posts 数组里插入一对标记。"""
-    if locate_markers(text) is not None:
+def ensure_markers(text, key="posts", start_mark=MARK_START, end_mark=MARK_END):
+    """没有标记时补一对：数组已存在就插在数组里，没有这个键就插到根对象开头。"""
+    if locate_markers(text, start_mark, end_mark) is not None:
         return text
-    open_pos, close_pos = find_posts_array(text)
+    span = find_array_span(text, key)
+    if span is None:
+        brace = text.find("{")
+        if brace < 0:
+            fail("data.jsonc 不是 JSON 对象")
+        block = f'\n  "{key}": [\n    {start_mark}\n    {end_mark}\n  ],'
+        return text[: brace + 1] + block + text[brace + 1:]
+    open_pos, close_pos = span
     line_start = text.rfind("\n", 0, open_pos) + 1
     prefix = text[line_start:open_pos]
     key_indent = prefix[: len(prefix) - len(prefix.lstrip())]
     elem_indent = key_indent + "  "
     block = (
         "[\n"
-        + elem_indent + MARK_START + "\n"
-        + elem_indent + MARK_END + "\n"
+        + elem_indent + start_mark + "\n"
+        + elem_indent + end_mark + "\n"
         + key_indent + "]"
     )
     return text[:open_pos] + block + text[close_pos + 1:]
@@ -319,12 +333,12 @@ def normalize_post(post):
     return out
 
 
-def replace_posts(text, posts):
-    text = ensure_markers(text)
-    start, end = locate_markers(text)
+def replace_section(text, key, start_mark, end_mark, posts):
+    text = ensure_markers(text, key, start_mark, end_mark)
+    start, end = locate_markers(text, start_mark, end_mark)
     start_line_end = text.find("\n", start)
     if start_line_end < 0:
-        fail("data.jsonc 的 posts 起始标记后面缺少换行")
+        fail(f"data.jsonc 的 {key} 起始标记后面缺少换行")
     end_line_start = text.rfind("\n", 0, end) + 1
     marker_line_start = text.rfind("\n", 0, start) + 1
     indent = text[marker_line_start:start]
@@ -335,6 +349,10 @@ def replace_posts(text, posts):
     except json.JSONDecodeError as exc:
         fail(f"生成的 data.jsonc 不是合法 JSONC：{exc}")
     return new_text
+
+
+def replace_posts(text, posts):
+    return replace_section(text, "posts", MARK_START, MARK_END, posts)
 
 
 def load_existing_posts(text):
@@ -691,13 +709,14 @@ def remove_managed_file(rel_path, base_dir, posts_dir, dry_run=False):
 # ─────────────────────────── articles/ → 元数据 ───────────────────────────
 
 def sync_articles(articles_dir, state, data_dir, posts_dir, used_slugs, dry_run=False, excerpt_length=120):
-    """读取 articles/ 下的 .md，写入 posts/，返回 (元数据列表, 写入数, 未变数, 删除数)。"""
+    """读取 articles/ 下的 .md，写入 posts/，返回 (元数据列表, 隐藏元数据列表, 写入数, 未变数, 删除数)。"""
     posts = []
+    hidden_posts = []
     if articles_dir is None:
-        return posts, 0, 0, 0
+        return posts, hidden_posts, 0, 0, 0
     if not articles_dir.exists():
         log(f"文章源目录不存在，跳过：{articles_dir}")
-        return posts, 0, 0, 0
+        return posts, hidden_posts, 0, 0, 0
 
     sources = []
     for path in articles_dir.rglob("*.md"):
@@ -754,6 +773,8 @@ def sync_articles(articles_dir, state, data_dir, posts_dir, used_slugs, dry_run=
         state["articles"][src_rel] = entry
         if not hidden:
             posts.append(normalize_post(meta))
+        else:
+            hidden_posts.append(normalize_post(meta))
 
     # 改名（比如 x.md → x.hide.md）时输出文件不变，不能把它当成已删除再删掉
     kept_files = {
@@ -770,7 +791,7 @@ def sync_articles(articles_dir, state, data_dir, posts_dir, used_slugs, dry_run=
         remove_managed_file(info.get("file"), data_dir, posts_dir, dry_run)
         removed += 1
 
-    return posts, written, unchanged, removed
+    return posts, hidden_posts, written, unchanged, removed
 
 
 # ─────────────────────────── GitHub API ───────────────────────────
@@ -1081,7 +1102,7 @@ def main():
     # 3) 本地 articles/：写入 posts/ 并生成元数据
     # 分配 slug 时只避开当前 issue，不避开旧文章自己的 slug，否则每次运行都会被重命名。
     used_slugs = {info.get("slug") for info in state["issues"].values() if info.get("slug")}
-    article_posts, article_written, article_unchanged, article_removed = sync_articles(
+    article_posts, article_hidden, article_written, article_unchanged, article_removed = sync_articles(
         articles_dir, state, data_dir, posts_dir, used_slugs,
         args.dry_run, args.excerpt_length,
     )
@@ -1148,6 +1169,14 @@ def main():
     )
 
     new_data_text = replace_posts(data_text, combined)
+    hidden_posts = sorted(
+        article_hidden,
+        key=lambda p: (str(p.get("date") or ""), str(p.get("slug") or "")),
+        reverse=True,
+    )
+    new_data_text = replace_section(
+        new_data_text, "hiddenPosts", HIDDEN_MARK_START, HIDDEN_MARK_END, hidden_posts
+    )
     data_changed = new_data_text != data_text or not data_file.exists()
     if data_changed:
         if args.dry_run:

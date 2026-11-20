@@ -3,6 +3,10 @@
     // >>> issue-sync:posts:start
     // <<< issue-sync:posts:end
   ],
+  "hiddenPosts": [
+    // >>> issue-sync:hidden:start
+    // <<< issue-sync:hidden:end
+  ],
 
   "goatcounter": {
     "code": "alipay",

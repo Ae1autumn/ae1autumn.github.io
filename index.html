@@ -1812,6 +1812,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
       var data = parseJsonc(text);
       window.SITE_DATA = data;
       window.POSTS = data.posts || [];
+      window.HIDDEN_POSTS = data.hiddenPosts || [];
       window.GOATCOUNTER = data.goatcounter || {};
       window.GISCUS = data.giscus || {};
       return data;
@@ -1819,6 +1820,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
     .catch(function (err) {
       window.__siteDataError = err;
       window.POSTS = [];
+      window.HIDDEN_POSTS = [];
       window.GOATCOUNTER = {};
       window.GISCUS = {};
       console.error('[site-data] 加载 data.jsonc 失败：', err);
@@ -5436,7 +5438,9 @@ window.__siteDataReady.then(function () {
   });
 
   function findMeta(slug) {
-    return (window.POSTS || []).find(function (d) { return d.slug === slug; }) || null;
+    return (window.POSTS || []).find(function (d) { return d.slug === slug; })
+      || (window.HIDDEN_POSTS || []).find(function (d) { return d.slug === slug; })
+      || null;
   }
 
   function handleHash() {
