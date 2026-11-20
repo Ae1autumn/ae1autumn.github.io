@@ -134,7 +134,7 @@ ___
 | 较长的内容 AAAA | 较长的内容 BBBB | 较长的内容 CCCC |
 | 短 | 短 | 短 |
 
-### 3.6 宽表格（测试横向滚动这之后的是加长内容）
+### 3.6 宽表格（测试横向滚动）
 
 | 列一 | 列二 | 列三 | 列四 | 列五 | 列六 | 列七 | 列八 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -350,6 +350,8 @@ https://example.com/very/long/path/that/keeps/going/and/going/and/going/without/
 
 下面是一个超长行内代码：`this_is_a_very_long_identifier_without_any_spaces_that_should_test_overflow_behavior_in_inline_code_elements`
 
+### 6.4 超长标题测试(这是一个超长标题它如果致使章节指示器产生布局错误就应该考虑处理这个问题)
+
 ---
 
 ## 第七章：混合内容
@@ -500,5 +502,5 @@ $$
 
 文档结束。
 ```
-
-补充说明：原文 2.4 节中的“行内链接”“带标题的链接”“引用式链接”“自动链接”“邮箱链接”在纯文本中丢失了 URL，我分别补为 `https://example.com`、`https://example.com "Example Title"`、引用定义 `[ref1]: https://example.com "Reference Link"`、`<https://example.com>`、`<mailto:someone@example.com>`，这些是测试占位值，可按需替换。目录中的锚点按常见 GitHub 风格标题锚点生成，若目标渲染器锚点规则不同，可相应调整。
+如果下方还有内容，则可能是脚注等引用内容，全文搜索或点击跳转时会自动展开
+```

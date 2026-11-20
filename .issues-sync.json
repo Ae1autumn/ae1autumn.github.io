@@ -20,7 +20,7 @@
       "source_sha256": "6e126317dd41379b59f0644258eb4486740ff91cdc4eadad098d381bd088be48"
     },
     "test-t.pin.md": {
-      "body_sha256": "2cb71940932d14e13682a02965299ad9565b71824f8e8657bfea3279e164d00c",
+      "body_sha256": "5bebbc572a31859c50d4f82432a5d24c63105bb790c163af286001c3021896cf",
       "date": "2026.11.19",
       "file": "posts/test-t.md",
       "meta": {
@@ -35,7 +35,7 @@
         "title": "测试文档：长文档渲染与结构测试"
       },
       "slug": "test-t",
-      "source_sha256": "d07f9731ebb05f4c696d3ea5a277a543ac1a1e952e82f04c8d155520990fc50e"
+      "source_sha256": "36a7c07b21289881a1104bd2980326f24f8492bda47817cd57c7c7747e541667"
     }
   },
   "issues": {
