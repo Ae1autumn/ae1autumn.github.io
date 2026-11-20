@@ -455,7 +455,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-header-row{
   position:relative;z-index:calc(var(--z-post) + 1);flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;gap:1rem;
-  height:var(--toolbar-h);padding:0 1rem;
+  height:var(--toolbar-h);padding:0 var(--pad-x);
   border-top:var(--hairline) solid var(--border);
 }
 .post-header-row::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:var(--hairline);background:var(--border)}
@@ -512,7 +512,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-toolbar-row{
   position:relative;z-index:var(--z-post-ui);flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;gap:.5rem;
-  height:var(--toolbar-h);padding:0 1rem;
+  height:var(--toolbar-h);padding:0 var(--pad-x);
   border-bottom:var(--hairline) solid var(--border);
 }
 .post-chapters-wrap{
@@ -564,7 +564,9 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   transition:opacity .25s;
 }
 .post-chapters-hint.collapsed{opacity:0;max-width:0;overflow:hidden}
-.post-toolbar-actions{display:flex;align-items:center;gap:.05rem;flex-shrink:0}
+/* 图标按钮 36px 命中区内的 16px 图形左右各有 10px 隐形留白，整体右拉回，
+   使末位图标的可见边缘与上一行计时文字、正文列共用同一 --pad-x 基准 */
+.post-toolbar-actions{display:flex;align-items:center;gap:.05rem;flex-shrink:0;margin-right:calc((36px - 16px) / -2)}
 .post-toolbar-actions .icon-btn{width:36px;height:36px}
 .post-toolbar-actions .icon-btn svg{width:16px;height:16px}
 .post-toolbar-actions .icon-btn.is-active{color:var(--accent);background:var(--surface)}
