@@ -3143,32 +3143,16 @@ window.__siteDataReady.then(function () {
   }
 
   function restoreScrollPosition(savedTop, token, onDone) {
-    const imgs = Array.prototype.slice.call(postContent.querySelectorAll('img'));
-    let applied = false, userMoved = false;
-    function mark() { userMoved = true; }
-    function apply() {
-      if (applied) return;
-      applied = true;
-      postContent.removeEventListener('scroll', mark);
+    /* 图片是懒加载：没到位置就不会加载，等图只会让页面停在顶部干等。
+       渲染完下一帧直接恢复位置，接近视口的图片会自行补加载 */
+    requestAnimationFrame(function () {
       if (token !== postLoadToken) return;
       contentReady = true;
-      if (!userMoved) {
-        postContent.scrollTop = savedTop || 0;
-        updateProgress(); updateChapterBlocks();
-      }
+      postContent.scrollTop = savedTop || 0;
+      updateProgress(); updateChapterBlocks();
       updateCodeReading();
       if (onDone) onDone();
-    }
-    if (!imgs.length) { requestAnimationFrame(apply); return; }
-    postContent.addEventListener('scroll', mark, { passive: true });
-    let remaining = imgs.length;
-    function settle() { if (--remaining <= 0) requestAnimationFrame(apply); }
-    imgs.forEach(function (img) {
-      if (img.complete) { settle(); return; }
-      img.addEventListener('load', settle, { once: true });
-      img.addEventListener('error', settle, { once: true });
     });
-    setTimeout(apply, 1500);
   }
 
   /* ── 标题分享 / 目录索引 ── */
