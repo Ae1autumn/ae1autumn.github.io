@@ -5030,7 +5030,10 @@ window.__siteDataReady.then(function () {
     const aborter = new AbortController();
     currentAbort = aborter;
     try {
-      const resp = await fetch(meta.src, { signal: aborter.signal });
+      /* 正文不走任何 HTTP 缓存：加时间戳 + no-store，
+         本地预览和线上（GitHub Pages 默认 max-age=600）都能立刻读到改动 */
+      const srcBust = meta.src + (meta.src.indexOf('?') === -1 ? '?' : '&') + 'v=' + Date.now();
+      const resp = await fetch(srcBust, { signal: aborter.signal, cache: 'no-store' });
       if (!resp.ok) throw new Error('fetch failed');
       const total = parseInt(resp.headers.get('content-length') || '0', 10);
       if (resp.body && resp.body.getReader) {
