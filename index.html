@@ -469,6 +469,13 @@ a{text-decoration:none}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
+/* 长代码块占满正文：时钟换成 </>，表示当前不计阅读时长 */
+.post-timer-code,.fs-timer-code{display:none}
+.post-timer.is-code .post-timer-clock,
+.fs-timer.is-code .fs-timer-clock{display:none}
+.post-timer.is-code .post-timer-code,
+.fs-timer.is-code:not(.is-error) .fs-timer-code{display:block;animation:timer-code-in .18s var(--ease-out)}
+@keyframes timer-code-in{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:scale(1)}}
 
 .post-reload-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem}
 .post-reload-hint{font-size:.85rem;color:var(--text-3)}
@@ -1241,9 +1248,14 @@ a{text-decoration:none}
     <div class="post-header-row" id="post-header-row">
       <span class="post-header-title" id="post-header-title"></span>
       <div class="post-timer" id="post-timer">
-        <svg class="post-timer-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <svg class="post-timer-icon post-timer-clock" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="10"/>
           <polyline id="post-clock-hand" points="12 6 12 12 16 14"/>
+        </svg>
+        <svg class="post-timer-icon post-timer-code" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="8 7 3 12 8 17"/>
+          <polyline points="16 7 21 12 16 17"/>
+          <line x1="14" y1="5" x2="10" y2="19"/>
         </svg>
         <span class="post-timer-num" id="post-used">00</span>
         <span class="post-timer-sep">-</span>
@@ -1294,7 +1306,12 @@ a{text-decoration:none}
     </button>
 
     <div class="fs-float fs-timer" id="fs-timer" aria-label="已用时间">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <svg class="fs-timer-clock" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <svg class="fs-timer-code" viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="8 7 3 12 8 17"/>
+        <polyline points="16 7 21 12 16 17"/>
+        <line x1="14" y1="5" x2="10" y2="19"/>
+      </svg>
       <span id="fs-used">00</span>
     </div>
   </div>
@@ -2737,6 +2754,7 @@ window.__siteDataReady.then(function () {
   let postLoadToken = 0, currentAbort = null;
   let contentReady = false;
   let timerInterval = null, usedSeconds = 0;
+  let inLongCode = false;
   let openPanel = null;
   let headings = [], tocItems = [], activeTocIdx = -1;
   let currentChap1 = '', currentChap2 = '';
@@ -2763,6 +2781,7 @@ window.__siteDataReady.then(function () {
       updateChapterBlocks();             // 同步悬浮章节指示器
       requestAnimationFrame(function () { updateFade(fsChap1); updateFade(fsChap2); });
     }
+    requestAnimationFrame(updateCodeReading); // 工具栏显示/隐藏会改变正文可视高度
     if (openPanel) syncPanelPositions(); // 全屏下面板需重新定位
   }
 
@@ -2911,7 +2930,7 @@ window.__siteDataReady.then(function () {
 
   /* ── 计时 ── */
   function startTimer() {
-    if (timerInterval) return;
+    if (timerInterval || inLongCode) return;
     timerInterval = setInterval(function () {
       usedSeconds++;
       renderTimer();
@@ -2919,6 +2938,39 @@ window.__siteDataReady.then(function () {
     }, 1000);
   }
   function pauseTimer() { clearInterval(timerInterval); timerInterval = null; }
+  function canRunTimer() {
+    return !!currentSlug && contentReady && !loadFailed && !isEmptyPost &&
+      document.visibilityState !== 'hidden' &&
+      !postHeaderRow.classList.contains('is-loading');
+  }
+  function setCodeReading(on) {
+    if (inLongCode === on) return;
+    inLongCode = on;
+    postTimer.classList.toggle('is-code', on);
+    fsTimer.classList.toggle('is-code', on);
+    if (on) pauseTimer();
+    else if (canRunTimer()) startTimer();
+  }
+  function resetCodeReading() {
+    inLongCode = false;
+    postTimer.classList.remove('is-code');
+    fsTimer.classList.remove('is-code');
+  }
+  /* 正文可视区完全落在一个高于可视区的代码块内时：暂停计时并换用代码图标 */
+  function updateCodeReading() {
+    let inCode = false;
+    const viewH = postContent.clientHeight;
+    if (currentSlug && !loadFailed && !isEmptyPost && viewH > 0) {
+      const vr = postContent.getBoundingClientRect();
+      const viewTop = vr.top + 1, viewBottom = vr.top + viewH - 1;
+      const blocks = postContent.querySelectorAll('.code-block');
+      for (let i = 0; i < blocks.length; i++) {
+        const r = blocks[i].getBoundingClientRect();
+        if (r.height > viewH && r.top <= viewTop && r.bottom >= viewBottom) { inCode = true; break; }
+      }
+    }
+    setCodeReading(inCode);
+  }
   function setUsed(t) { postUsed.textContent = t; fsUsed.textContent = t; }
   function renderTimer() { setUsed(String(Math.floor(usedSeconds / 60)).padStart(2, '0')); }
   /* ── 预计阅读时长：中文 300 字/分，英文 200 词/分；不计代码与图片 ── */
@@ -2939,6 +2991,7 @@ window.__siteDataReady.then(function () {
   }
   function setTimerError() {
     /* 顶部计时器整个移除；全屏计时器保留位置，显示占位文本 */
+    resetCodeReading();
     postTimer.style.display = 'none';
     fsTimer.style.display = '';
     fsTimer.classList.add('is-error');
@@ -2981,6 +3034,7 @@ window.__siteDataReady.then(function () {
         postContent.scrollTop = savedTop || 0;
         updateProgress(); updateChapterBlocks();
       }
+      updateCodeReading();
       if (onDone) onDone();
     }
     if (!imgs.length) { requestAnimationFrame(apply); return; }
@@ -3030,7 +3084,7 @@ window.__siteDataReady.then(function () {
     var top = target.getBoundingClientRect().top - postContent.getBoundingClientRect().top + postContent.scrollTop - 14;
     if (smooth) postContent.scrollTo({ top: top, behavior: 'smooth' });
     else postContent.scrollTop = top;
-    updateProgress(); updateChapterBlocks(); updateVFade(postContent);
+    updateProgress(); updateChapterBlocks(); updateVFade(postContent); updateCodeReading();
     return true;
   }
 
@@ -3143,7 +3197,7 @@ window.__siteDataReady.then(function () {
   }
   /* 代码块展开/收起会改变正文高度：同步进度、章节指示与上下渐隐 */
   window.refreshPostLayout = function () {
-    updateProgress(); updateChapterBlocks(); refreshVFades();
+    updateProgress(); updateChapterBlocks(); refreshVFades(); updateCodeReading();
   };
   [tocBody, srBody].forEach(function (el) {
     if (el) el.addEventListener('scroll', function () { updateVFade(el); }, { passive: true });
@@ -3562,6 +3616,7 @@ window.__siteDataReady.then(function () {
       window.lockBackgroundScroll();
       postScrollLocked = true;
     }
+    resetCodeReading();
 
     postContent.innerHTML = '';
     postContent.scrollTop = 0;
@@ -3670,6 +3725,7 @@ window.__siteDataReady.then(function () {
     } else {
       contentReady = true;
       startTimer();
+      updateCodeReading();
     }
   }
 
@@ -3685,6 +3741,7 @@ window.__siteDataReady.then(function () {
       if (isFullyRead()) clearState(currentSlug); else saveState(currentSlug);
     }
     pauseTimer();
+    resetCodeReading();
     postPage.classList.remove('is-open');
     postPage.setAttribute('aria-hidden', 'true');
     closePostTimer = setTimeout(function finalizePostClose() {
@@ -3711,17 +3768,18 @@ window.__siteDataReady.then(function () {
       pauseTimer();
       if (!isLoading) saveState(currentSlug);
     } else if (!isLoading && contentReady) {
-      startTimer();
+      updateCodeReading();
+      if (!inLongCode) startTimer();
     }
   });
 
   postContent.addEventListener('scroll', function () {
-    updateProgress(); updateChapterBlocks(); updateVFade(postContent);
+    updateProgress(); updateChapterBlocks(); updateVFade(postContent); updateCodeReading();
   }, { passive: true });
 
   /* 图片懒加载完成后内容高度变化，重新计算渐隐（load 不冒泡，用 capture） */
   postContent.addEventListener('load', function (e) {
-    if (e.target && e.target.tagName === 'IMG') updateVFade(postContent);
+    if (e.target && e.target.tagName === 'IMG') { updateVFade(postContent); updateCodeReading(); }
   }, true);
 
   /* 文内锚点（脚注引用/回链、手写 #锚点）：只滚动，不动 location.hash，否则会触发路由关闭文章 */
@@ -3997,6 +4055,7 @@ window.__siteDataReady.then(function () {
     if (openPanel) syncPanelPositions();
     refreshVFades();
     refreshTocFades();
+    updateCodeReading();
   }
   window.addEventListener('resize', handleViewportResize, { passive: true });
   if (window.visualViewport) {
