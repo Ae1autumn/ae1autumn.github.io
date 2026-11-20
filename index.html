@@ -2951,6 +2951,32 @@ window.__siteDataReady.then(function () {
   let fsChapLastTap = 0;
 
   /* ── 全屏阅读模式 ── */
+  /* 阅读全屏 = CSS 收起工具栏 + 浏览器原生全屏（隐藏地址栏/系统栏）。
+     原生全屏不支持或被拒绝（如 iOS Safari、非用户手势触发）时静默退回 CSS 全屏。
+     对 documentElement 请求全屏，保证目录/评论等面板仍可见可用。 */
+  const fsRoot = document.documentElement;
+  function nativeFsElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+  function requestNativeFullscreen() {
+    if (nativeFsElement()) return;
+    const fn = fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen || fsRoot.msRequestFullscreen;
+    if (!fn) return;
+    try {
+      const ret = fn.call(fsRoot, { navigationUI: 'hide' });
+      if (ret && typeof ret.catch === 'function') ret.catch(function () { /* 请求被拒：保留 CSS 全屏 */ });
+    } catch (e) { /* 请求被拒：保留 CSS 全屏 */ }
+  }
+  function exitNativeFullscreen() {
+    if (!nativeFsElement()) return;
+    const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    if (!fn) return;
+    try {
+      const ret = fn.call(document);
+      if (ret && typeof ret.catch === 'function') ret.catch(function () {});
+    } catch (e) {}
+  }
+
   function setFullscreen(on) {
     if (isFullscreen === on) return;
     isFullscreen = on;
@@ -2964,12 +2990,26 @@ window.__siteDataReady.then(function () {
     btnFullscreen.classList.toggle('is-active', on);
     btnFullscreen.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (on) {
+      requestNativeFullscreen();         // 触发浏览器原生全屏
       updateChapterBlocks();             // 同步悬浮章节指示器
       requestAnimationFrame(function () { updateFade(fsChap1); updateFade(fsChap2); });
+    } else {
+      exitNativeFullscreen();            // 与浏览器全屏状态保持一致
     }
     requestAnimationFrame(updateCodeReading); // 工具栏显示/隐藏会改变正文可视高度
     if (openPanel) syncPanelPositions(); // 全屏下面板需重新定位
   }
+
+  /* 与浏览器全屏状态双向同步：
+     - 用户从浏览器侧退出（Esc / F11 / 系统手势）时，退出阅读全屏；
+     - 极端情况下原生全屏在退出后才生效（快速连点），立即撤掉。 */
+  ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(function (ev) {
+    document.addEventListener(ev, function () {
+      const el = nativeFsElement();
+      if (el && el === fsRoot && !isFullscreen) { exitNativeFullscreen(); return; }
+      if (isFullscreen && !el) setFullscreen(false);
+    });
+  });
 
   /* ── blur 高度 ── */
   function syncBlurHeight() {
