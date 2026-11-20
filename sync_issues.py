@@ -581,7 +581,17 @@ def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, e
     slug = allocate_slug(base_slug, used_slugs)
     used_slugs.add(slug)
 
+    rel = os.path.relpath(posts_dir / f"{slug}.md", data_dir).replace(os.sep, "/")
+    src = rel if rel.startswith(".") else "./" + rel
+
     old = state["articles"].get(src_rel) or {}
+    if not old.get("date"):
+        # 改名（如 x.pin.md → x.md）时 src_rel 变了，但输出文件还是同一个，沿用旧日期
+        for info in state["articles"].values():
+            if info.get("file") == rel:
+                old = info
+                break
+
     date = normalize_date(front.get("date"))
     if not date:
         date = normalize_date(old.get("date"))
@@ -606,9 +616,6 @@ def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, e
     if not excerpt:
         excerpt = auto_excerpt(md_text, excerpt_length)
     excerpt = re.sub(r"\s+", " ", excerpt).strip()
-
-    rel = os.path.relpath(posts_dir / f"{slug}.md", data_dir).replace(os.sep, "/")
-    src = rel if rel.startswith(".") else "./" + rel
 
     meta = {
         "slug": slug,
