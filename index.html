@@ -2148,6 +2148,16 @@ window.__siteDataReady.then(function hydrateViews() {
     toggle.setAttribute('aria-label', collapsed ? '展开代码' : '收起代码');
   }
 
+  /* 统一展开/收起三种折叠块：代码块、脚注、作者手写 <details>。
+     供阅读进度恢复时还原判定线所在的折叠块 */
+  function setFoldExpanded(el, expanded) {
+    if (!el) return;
+    if (el.tagName === 'DETAILS') { el.open = !!expanded; return; }
+    if (el.classList.contains('footnotes')) setFootnoteCollapsed(el, !expanded);
+    else if (el.classList.contains('code-block')) setCodeCollapsed(el, !expanded);
+  }
+  window.setFoldExpanded = setFoldExpanded;
+
   function hasCodeSelection() {
     var sel = window.getSelection ? window.getSelection() : null;
     return !!(sel && sel.rangeCount && !sel.isCollapsed);
@@ -2929,6 +2939,45 @@ window.__siteDataReady.then(function () {
     postContent.scrollTo({ top: postContent.scrollHeight, behavior: 'smooth' });
   });
 
+  /* ── 折叠块状态 ──
+     判定线落在某个展开的折叠块里时，记住它，下次恢复滚动位置前先展开，
+     否则折叠块默认收起，保存的 scrollTop 会落到错误的段落 */
+  function assignFoldKeys() {
+    const counters = { code: 0, fn: 0, details: 0 };
+    postContent.querySelectorAll('.code-block, .footnotes, details').forEach(function (el) {
+      const kind = el.classList.contains('code-block')
+        ? 'code'
+        : (el.classList.contains('footnotes') ? 'fn' : 'details');
+      el.dataset.foldKey = kind + ':' + (counters[kind]++);
+    });
+  }
+  function isFoldExpanded(el) {
+    if (el.tagName === 'DETAILS') return !!el.open;
+    return !el.classList.contains('is-collapsed');
+  }
+  function collectReadingFolds() {
+    const keys = [];
+    if (!currentSlug || !contentReady) return keys;
+    const lineY = getReadingLineY();
+    assignFoldKeys();
+    postContent.querySelectorAll('.code-block, .footnotes, details').forEach(function (el) {
+      if (el.classList.contains('is-static') || !isFoldExpanded(el)) return;
+      const r = el.getBoundingClientRect();
+      if (r.top <= lineY && r.bottom >= lineY) keys.push(el.dataset.foldKey);
+    });
+    return keys;
+  }
+  function restoreFoldState(keys) {
+    if (!Array.isArray(keys) || !keys.length) return;
+    assignFoldKeys();
+    const wanted = {};
+    keys.forEach(function (key) { if (typeof key === 'string') wanted[key] = true; });
+    postContent.querySelectorAll('.code-block, .footnotes, details').forEach(function (el) {
+      if (!wanted[el.dataset.foldKey]) return;
+      if (window.setFoldExpanded) window.setFoldExpanded(el, true);
+    });
+  }
+
   /* ── localStorage ── */
   function loadState(slug) {
     try {
@@ -2944,6 +2993,7 @@ window.__siteDataReady.then(function () {
         scrollTop: postContent.scrollTop,
         usedSeconds: usedSeconds,
         hasReachedEnd: isFullyRead(),
+        folds: collectReadingFolds(),
       }));
     } catch (e) {}
   }
@@ -3796,6 +3846,7 @@ window.__siteDataReady.then(function () {
     } else if (saved && !saved.hasReachedEnd) {
       usedSeconds = saved.usedSeconds;
       renderTimer();
+      restoreFoldState(saved.folds);
       restoreScrollPosition(saved.scrollTop, token, startTimer);
     } else {
       contentReady = true;
