@@ -465,27 +465,29 @@ a{text-decoration:none}
   font-family:var(--font-display);font-size:1rem;color:var(--text-2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
 }
-.post-timer{position:relative;display:flex;align-items:center;gap:.32rem;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0}
+.post-timer{display:flex;align-items:center;gap:0;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;flex-shrink:0;transition:margin-right .32s var(--ease-out)}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
-/* 长代码块内：整个计时信息淡出，</> 用章节文本的纵向滚入动画贴在右边缘 */
+/* 长代码块内：计时信息收起，</> 与章节文本共用同一套纵向切换动画 */
 .post-timer-live,.fs-timer-live{
-  display:flex;align-items:center;gap:.32rem;opacity:1;
-  transition:opacity .18s var(--ease-out);
+  display:flex;align-items:center;justify-content:flex-end;gap:.32rem;opacity:1;transform:translateY(0);
+  min-width:0;max-width:var(--timer-live-w,none);overflow:hidden;
+  transition:max-width .32s var(--ease-out),opacity .32s var(--ease-out),transform .32s var(--ease-out);
 }
 .post-timer-code,.fs-timer .fs-timer-code{
-  position:absolute;top:0;bottom:0;margin:auto 0;
-  width:18px;height:18px;opacity:0;pointer-events:none;
-  transition:opacity .18s var(--ease-out);
+  flex:0 0 auto;width:18px;height:18px;
+  margin-left:-18px;opacity:0;transform:translateY(-.85em);pointer-events:none;
+  transition:margin-left .32s var(--ease-out),opacity .32s var(--ease-out),transform .32s var(--ease-out);
 }
-.post-timer-code{right:0}
-/* 全屏胶囊自带左右内边距：右对齐到内容边缘，和计时数字的右端一致 */
-.fs-timer .fs-timer-code{right:.8rem}
 .post-timer.is-code .post-timer-live,
-.fs-timer.is-code .fs-timer-live{opacity:0}
+.fs-timer.is-code .fs-timer-live{max-width:0;opacity:0;transform:translateY(-.85em)}
 .post-timer.is-code .post-timer-code,
-.fs-timer.is-code:not(.is-error) .fs-timer-code{opacity:1}
+.fs-timer.is-code:not(.is-error) .fs-timer-code{margin-left:0;opacity:1;transform:translateY(0)}
+/* 代码图标右缘对齐第二行工具栏的右内边距 .6rem：
+   header 右内边距是 1rem，因此回拉 .4rem。工具栏右侧间距暂无变量，
+   先硬编码，日后统一替换为变量 */
+.post-timer.is-code{margin-right:-.4rem}
 .timer-roll-in{animation:chap-roll-in .32s var(--ease-out)}
 
 .post-reload-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem}
@@ -630,9 +632,13 @@ a{text-decoration:none}
 /* 普通模式没有章节时隐藏「目录」文字，但保留按钮点击区域 */
 .post-chapters-wrap.is-empty .post-chapters-hint{opacity:0}
 .fs-timer{
-  right:var(--panel-gap);flex-shrink:0;gap:.32rem;
+  right:var(--panel-gap);flex-shrink:0;gap:0;
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
+  transition:padding .32s var(--ease-out);
 }
+/* 全屏胶囊代码态收窄到图标，右侧内边距对齐第二行工具栏的 .6rem；
+   该值暂无变量，先硬编码，日后统一替换为变量 */
+.fs-timer.is-code{padding:0 .6rem}
 .fs-timer svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .fs-timer.is-error svg{display:none}
 /* 全屏时 TOC 标题栏额外显示「退出全屏」 */
@@ -2774,6 +2780,7 @@ window.__siteDataReady.then(function () {
   let contentReady = false;
   let timerInterval = null, usedSeconds = 0;
   let inLongCode = false;
+  let timerWidthCleanup = null;
   let openPanel = null;
   let headings = [], tocItems = [], activeTocIdx = -1;
   let currentChap1 = '', currentChap2 = '';
@@ -2962,6 +2969,23 @@ window.__siteDataReady.then(function () {
       document.visibilityState !== 'hidden' &&
       !postHeaderRow.classList.contains('is-loading');
   }
+  function timerLiveWidth(live) {
+    /* 收起后 live 是 0 宽并右对齐，scrollWidth 不可靠；按子项实测宽度求和 */
+    let w = 0;
+    const kids = live.children;
+    for (let i = 0; i < kids.length; i++) w += kids[i].offsetWidth;
+    if (kids.length > 1) {
+      const gap = parseFloat(getComputedStyle(live).columnGap) || 0;
+      w += gap * (kids.length - 1);
+    }
+    return w;
+  }
+  function syncTimerLiveWidth() {
+    const timer = isFullscreen ? fsTimer : postTimer;
+    const live  = isFullscreen ? fsTimerLive : postTimerLive;
+    /* 收起/展开用实测宽度做上限，避免动画从 none 直接跳到 0 */
+    timer.style.setProperty('--timer-live-w', (timerLiveWidth(live) + 1) + 'px');
+  }
   function replayTimerRoll(els) {
     els.forEach(function (el) {
       el.classList.remove('timer-roll-in');
@@ -2972,19 +2996,40 @@ window.__siteDataReady.then(function () {
   function setCodeReading(on) {
     if (inLongCode === on) return;
     inLongCode = on;
+    syncTimerLiveWidth();
+    void (isFullscreen ? fsTimerLive : postTimerLive).offsetWidth; // 先落到实测宽度，收起时才有起点
+    clearTimeout(timerWidthCleanup);
+    timerWidthCleanup = null;
+    /* 移除上一轮的滚入动画，让离开的那个元素走 opacity/transform 过渡 */
+    [postTimerLive, postTimerCode, fsTimerLive, fsTimerCode].forEach(function (el) {
+      el.classList.remove('timer-roll-in');
+    });
     postTimer.classList.toggle('is-code', on);
     fsTimer.classList.toggle('is-code', on);
     /* 只让当前可见的计时器播放滚入，隐藏的那个留着下次出现时直接到位 */
-    replayTimerRoll(on
-      ? (isFullscreen ? [fsTimerCode] : [postTimerCode])
-      : (isFullscreen ? [fsTimerLive] : [postTimerLive]));
-    if (on) pauseTimer();
-    else if (canRunTimer()) startTimer();
+    replayTimerRoll(isFullscreen
+      ? [on ? fsTimerCode : fsTimerLive]
+      : [on ? postTimerCode : postTimerLive]);
+    if (on) {
+      pauseTimer();
+    } else {
+      /* 展开结束后恢复 max-width:auto，避免以后数字变长被旧的实测宽度裁掉 */
+      timerWidthCleanup = setTimeout(function () {
+        if (inLongCode) return;
+        postTimer.style.removeProperty('--timer-live-w');
+        fsTimer.style.removeProperty('--timer-live-w');
+      }, 400);
+      if (canRunTimer()) startTimer();
+    }
   }
   function resetCodeReading() {
     inLongCode = false;
+    clearTimeout(timerWidthCleanup);
+    timerWidthCleanup = null;
     postTimer.classList.remove('is-code');
     fsTimer.classList.remove('is-code');
+    postTimer.style.removeProperty('--timer-live-w');
+    fsTimer.style.removeProperty('--timer-live-w');
     [postTimerLive, postTimerCode, fsTimerLive, fsTimerCode].forEach(function (el) {
       el.classList.remove('timer-roll-in');
     });
