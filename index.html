@@ -998,18 +998,18 @@ a{text-decoration:none}
 /* 文内搜索：结果过滤 Tab（沿用全站搜索的指示块与滑块动画） */
 .sr-filter-wrap{flex-shrink:0;padding:.45rem .55rem .55rem}
 .sr-filter-tabs{
-  position:relative;display:flex;padding:4px;
+  position:relative;display:flex;height:var(--control-h);padding:4px;
   border:var(--hairline) solid var(--border);border-radius:var(--radius-md);
   background:var(--bg);user-select:none;
 }
 .sr-filter-slider{
-  position:absolute;top:4px;left:4px;height:var(--control-h);border-radius:7px;
+  position:absolute;top:4px;bottom:4px;left:4px;border-radius:7px;
   background:var(--surface);box-shadow:inset 0 0 0 var(--hairline) var(--text-3);
   pointer-events:none;
   transition:transform .3s cubic-bezier(.77,0,.175,1),width .3s cubic-bezier(.77,0,.175,1);
 }
 .sr-filter-btn{
-  flex:1;height:var(--control-h);position:relative;z-index:1;border-radius:7px;
+  flex:1;position:relative;z-index:1;border-radius:7px;
   display:flex;align-items:center;justify-content:center;
   color:var(--text-3);transition:color .25s;
 }
