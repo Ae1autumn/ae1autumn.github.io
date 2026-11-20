@@ -3513,8 +3513,9 @@ window.__siteDataReady.then(function () {
 
   /* ── 文内搜索 ── */
   let hits = [], hitIdx = -1;
-  let hitCtx = []; // [{context, start, end, cat}]
+  let hitCtx = []; // [{context, start, end, cat, group}]
   let srItems = [];
+  let hitItemMap = []; // activeHits 下标 → srItems 下标（同一截断区域的命中合并为一行）
   let activeHits = []; // 当前过滤下的 hitCtx 下标
   let searchTimer = null;
   let filterIdx = 0;
@@ -3583,7 +3584,7 @@ window.__siteDataReady.then(function () {
       parent.replaceChild(document.createTextNode(m.textContent), m);
       parent.normalize();
     });
-    hits = []; hitIdx = -1; hitCtx = []; srItems = []; activeHits = [];
+    hits = []; hitIdx = -1; hitCtx = []; srItems = []; hitItemMap = []; activeHits = [];
     srResults.innerHTML = '';
     searchCount.textContent = '';
     searchPrev.disabled = true; searchNext.disabled = true;
@@ -3596,7 +3597,7 @@ window.__siteDataReady.then(function () {
     while (s > 0 && !BOUNDARY.test(text[s - 1])) s--;
     let e = end;
     while (e < text.length && !BOUNDARY.test(text[e])) e++;
-    return { context: text.slice(s, e), start: start - s, end: end - s };
+    return { context: text.slice(s, e), start: start - s, end: end - s, absStart: s, absEnd: e };
   }
 
   /* 命中位置分类：
@@ -3630,7 +3631,7 @@ window.__siteDataReady.then(function () {
     });
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach(function (node) {
+    nodes.forEach(function (node, nodeIdx) {
       const text = node.nodeValue;
       const lower = text.toLowerCase();
       const cat = hitCategory(node);
@@ -3639,6 +3640,7 @@ window.__siteDataReady.then(function () {
       while ((i = lower.indexOf(needle, pos)) !== -1) {
         const hc = sliceContext(text, i, i + needle.length);
         hc.cat = cat;
+        hc.group = nodeIdx + ':' + hc.absStart + ':' + hc.absEnd;
         hitCtx.push(hc);
         if (i > pos) frag.appendChild(document.createTextNode(text.slice(pos, i)));
         const mark = document.createElement('mark');
@@ -3660,7 +3662,16 @@ window.__siteDataReady.then(function () {
     resetHitSelection();
   }
 
-  /* 结果列表：按当前 Tab 过滤，命中词居中，溢出截断并加边缘渐隐 */
+  /* 截断片段内命中过多时，结果列表只占一行；横向对齐到当前命中词 */
+  function centerScrollHit(scroll, b) {
+    if (!scroll || !b) return;
+    /* 用视口坐标差计算，避免 offsetLeft 受 positioned 祖先影响而偏离中心 */
+    const delta = b.getBoundingClientRect().left - scroll.getBoundingClientRect().left;
+    scroll.scrollLeft += delta - (scroll.clientWidth - b.getBoundingClientRect().width) / 2;
+    updateFade(scroll);
+  }
+
+  /* 结果列表：按当前 Tab 过滤；同一截断区域的多次命中合并为一行 */
   function buildResults() {
     const key = FILTERS[filterIdx];
     activeHits = [];
@@ -3669,32 +3680,49 @@ window.__siteDataReady.then(function () {
     });
     srResults.innerHTML = '';
     srItems = [];
-    activeHits.forEach(function (globalIdx, idx) {
+    hitItemMap = [];
+    const groups = [];
+    const groupMap = Object.create(null);
+    activeHits.forEach(function (globalIdx, pos) {
       const hc = hitCtx[globalIdx];
+      let group = groupMap[hc.group];
+      if (!group) {
+        group = { hc: hc, positions: [] };
+        groupMap[hc.group] = group;
+        groups.push(group);
+      }
+      group.positions.push(pos);
+    });
+    groups.forEach(function (group) {
+      const hc = group.hc;
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'sr-item';
       const scroll = document.createElement('span');
       scroll.className = 'sr-scroll';
-      scroll.appendChild(document.createTextNode(hc.context.slice(0, hc.start)));
-      const b = document.createElement('b');
-      b.textContent = hc.context.slice(hc.start, hc.end);
-      scroll.appendChild(b);
-      scroll.appendChild(document.createTextNode(hc.context.slice(hc.end)));
+      let pos = 0;
+      group.positions.forEach(function (activePos) {
+        const hit = hitCtx[activeHits[activePos]];
+        if (hit.start > pos) scroll.appendChild(document.createTextNode(hc.context.slice(pos, hit.start)));
+        const b = document.createElement('b');
+        b.textContent = hc.context.slice(hit.start, hit.end);
+        scroll.appendChild(b);
+        pos = hit.end;
+      });
+      scroll.appendChild(document.createTextNode(hc.context.slice(pos)));
       item.appendChild(scroll);
-      item.addEventListener('click', function () { jumpToHit(idx); });
+      item.__positions = group.positions;
+      item.addEventListener('click', function () { jumpToHit(group.positions[0]); });
       srResults.appendChild(item);
+      const itemIdx = srItems.length;
       srItems.push(item);
+      group.positions.forEach(function (p) { hitItemMap[p] = itemIdx; });
     });
-    // 渲染后居中命中词并初始化渐隐
+    // 渲染后居中每组首个命中词并初始化渐隐
     requestAnimationFrame(function () {
       srItems.forEach(function (item) {
         const scroll = item.querySelector('.sr-scroll');
-        const b = scroll.querySelector('b');
-        /* 用视口坐标差计算，避免 offsetLeft 受 positioned 祖先影响而偏离中心 */
-        const delta = b.getBoundingClientRect().left - scroll.getBoundingClientRect().left;
-        scroll.scrollLeft += delta - (scroll.clientWidth - b.getBoundingClientRect().width) / 2;
-        updateFade(scroll);
+        centerScrollHit(scroll, scroll.querySelector('b'));
       });
       updateVFade(srBody); // 结果列表高度变化后刷新纵向渐隐
     });
@@ -3727,14 +3755,19 @@ window.__siteDataReady.then(function () {
     hitIdx = ((i % activeHits.length) + activeHits.length) % activeHits.length;
     const globalIdx = activeHits[hitIdx];
     hits.forEach(function (m, j) { m.classList.toggle('is-current', j === globalIdx); });
-    srItems.forEach(function (it, j) { it.classList.toggle('is-active', j === hitIdx); });
+    const itemIdx = hitItemMap[hitIdx];
+    srItems.forEach(function (it, j) { it.classList.toggle('is-active', j === itemIdx); });
     const el = hits[globalIdx];
     /* 命中词在折叠块（脚注等）里：先展开，否则定位到的是折叠后的旧布局 */
     if (window.revealFoldTarget) window.revealFoldTarget(el);
     const top = el.getBoundingClientRect().top - postContent.getBoundingClientRect().top + postContent.scrollTop - postContent.clientHeight / 2;
     postContent.scrollTo({ top: top, behavior: 'smooth' });
-    const it = srItems[hitIdx];
+    const it = srItems[itemIdx];
     if (it) {
+      const scroll = it.querySelector('.sr-scroll');
+      const localIdx = it.__positions ? it.__positions.indexOf(hitIdx) : 0;
+      const marks = scroll.querySelectorAll('b');
+      centerScrollHit(scroll, marks[localIdx] || marks[0]);
       const body = srResults.parentElement;
       const itemTop = it.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
       if (itemTop < body.scrollTop || itemTop + it.offsetHeight > body.scrollTop + body.clientHeight) {
