@@ -508,7 +508,7 @@ a{text-decoration:none}
 .post-toolbar-row{
   position:relative;z-index:var(--z-post-ui);flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;gap:.5rem;
-  height:var(--toolbar-h);padding:0 .6rem 0 1rem;
+  height:var(--toolbar-h);padding:0 1rem;
   border-bottom:var(--hairline) solid var(--border);
 }
 .post-chapters-wrap{
@@ -632,9 +632,9 @@ a{text-decoration:none}
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;color:var(--text-3);
   transition:padding .32s var(--ease-out);
 }
-/* 全屏胶囊代码态收窄到图标，右侧内边距与第二行工具栏的 .6rem 对齐；
+/* 全屏胶囊代码态收窄到图标，左右内边距与正文两行的 1rem 保持一致；
    该值暂无变量，先硬编码，日后统一替换为变量 */
-.fs-timer.is-code{padding:0 .6rem}
+.fs-timer.is-code{padding:0 1rem}
 .fs-timer svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .fs-timer.is-error svg{display:none}
 /* 全屏时 TOC 标题栏额外显示「退出全屏」 */
