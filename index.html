@@ -995,6 +995,8 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content p,.post-content li,.post-content blockquote{overflow-wrap:break-word}
 .post-content td,.post-content th{overflow-wrap:break-word}
 .post-content a{overflow-wrap:anywhere}
+/* 正文里的 URL 字符串（裸 URL，或文本本身就是 URL 的链接）用等宽字体 */
+.post-content .url-string{font-family:var(--font-mono);overflow-wrap:anywhere}
 .post-content code{overflow-wrap:anywhere;word-break:break-word}
 
 /* 代码高亮配色（接入既有纸/墨/朱砂 token，暗色用提亮的变体） */
@@ -2594,12 +2596,76 @@ window.__siteDataReady.then(function hydrateViews() {
     }
   }
 
+  /* 正文后处理：URL 字符串用等宽字体。
+     链接文本本身就是 URL 的，加类；正文里裸写的 URL 文本，包一层 .url-string */
+  var URL_STRING_RE = /(?:https?:\/\/|ftp:\/\/|www\.)[^\s<>"'`，。；：！？、（）【】]+/gi;
+
+  /* 去掉紧跟在 URL 后面的句读和不配对的右括号 */
+  function trimUrlTail(s) {
+    for (;;) {
+      var last = s.charAt(s.length - 1);
+      if (/[.,;:!?]/.test(last)) { s = s.slice(0, -1); continue; }
+      var open = last === ')' ? '(' : last === ']' ? '[' : last === '}' ? '{' : '';
+      if (open && s.split(open).length < s.split(last).length) { s = s.slice(0, -1); continue; }
+      return s;
+    }
+  }
+
+  function markUrlStrings(root) {
+    var links = root.querySelectorAll('a[href]');
+    var i;
+    for (i = 0; i < links.length; i++) {
+      var text = (links[i].textContent || '').trim();
+      if (/^(?:https?:\/\/|ftp:\/\/|www\.)/i.test(text)) links[i].classList.add('url-string');
+    }
+    if (!document.createTreeWalker || typeof NodeFilter === 'undefined') return;
+
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var v = node.nodeValue;
+        if (!v) return NodeFilter.FILTER_REJECT;
+        if (v.indexOf('http') === -1 && v.indexOf('www.') === -1 && v.indexOf('ftp://') === -1) return NodeFilter.FILTER_REJECT;
+        var p = node.parentNode;
+        if (!p || !p.closest) return NodeFilter.FILTER_REJECT;
+        /* 链接已单独处理；代码、KaTeX 等区域跳过 */
+        if (p.closest('a, code, pre, kbd, script, style, textarea, .katex, .code-block')) return NodeFilter.FILTER_REJECT;
+        URL_STRING_RE.lastIndex = 0;
+        return URL_STRING_RE.test(v) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (node) {
+      var text = node.nodeValue;
+      var frag = document.createDocumentFragment();
+      var last = 0, m;
+      URL_STRING_RE.lastIndex = 0;
+      while ((m = URL_STRING_RE.exec(text)) !== null) {
+        var raw = m[0];
+        var url = trimUrlTail(raw);
+        if (!url) continue;
+        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        var span = document.createElement('span');
+        span.className = 'url-string';
+        span.textContent = url;
+        frag.appendChild(span);
+        var tail = raw.slice(url.length);
+        if (tail) frag.appendChild(document.createTextNode(tail));
+        last = m.index + raw.length;
+      }
+      if (!last) return;
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+
   window.decoratePostContent = function (root) {
     if (!root) return;
     wrapContentTables(root);
     collapseFootnotes(root);
     applyAbbreviations(root);
     setupCodeBlocks(root);
+    markUrlStrings(root);
   };
 })();
 
