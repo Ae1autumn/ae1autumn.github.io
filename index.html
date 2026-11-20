@@ -966,6 +966,7 @@ a{text-decoration:none}
   display:flex;align-items:center;justify-content:space-between;
   padding:.4rem 1rem;border-bottom:var(--hairline) solid var(--border);flex-shrink:0;
 }
+.search-meta.has-results{border-bottom:none}
 .search-count{font-family:var(--font-mono);font-size:.7rem;color:var(--text-3);letter-spacing:.05em;min-height:1em}
 .search-nav{display:flex;gap:.15rem}
 .search-nav .icon-btn{width:30px;height:30px}
@@ -3520,6 +3521,7 @@ window.__siteDataReady.then(function () {
   let searchTimer = null;
   let filterIdx = 0;
   const srResults = $('sr-results');
+  const searchMeta = panelSearch.querySelector('.search-meta');
   const filterTabs = $('sr-filter-tabs');
   const filterSlider = $('sr-filter-slider');
   const filterBtns = Array.prototype.slice.call(filterTabs.querySelectorAll('.sr-filter-btn'));
@@ -3586,6 +3588,7 @@ window.__siteDataReady.then(function () {
     });
     hits = []; hitIdx = -1; hitCtx = []; srItems = []; hitItemMap = []; activeHits = [];
     srResults.innerHTML = '';
+    searchMeta.classList.remove('has-results');
     searchCount.textContent = '';
     searchPrev.disabled = true; searchNext.disabled = true;
     updateVFade(srBody); // 清空结果后同步渐隐
@@ -3719,6 +3722,7 @@ window.__siteDataReady.then(function () {
       group.positions.forEach(function (p) { hitItemMap[p] = itemIdx; });
     });
     // 渲染后居中每组首个命中词并初始化渐隐
+    searchMeta.classList.toggle('has-results', srItems.length > 0);
     requestAnimationFrame(function () {
       srItems.forEach(function (item) {
         const scroll = item.querySelector('.sr-scroll');
