@@ -357,6 +357,8 @@ https://example.com/very/long/path/that/keeps/going/and/going/and/going/without/
 
 下面是一个超长行内代码：`this_is_a_very_long_identifier_without_any_spaces_that_should_test_overflow_behavior_in_inline_code_elements`
 
+### 6.4 超长标题测试(这是一个超长标题它如果致使章节指示器产生布局错误就应该考虑处理这个问题)
+
 ---
 
 ## 第七章：混合内容

@@ -59,9 +59,11 @@
   --syn-type:  oklch(0.50 0.08 200);
 
   /* type */
-  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
-  --font-body:    ui-serif, Georgia, "Times New Roman", serif;
-  --font-mono:    "SF Mono", "Consolas", "Roboto Mono", monospace;
+  /* 默认用 Times New Roman，系统没有时按 Times → 通用 serif 逐级回退；
+     不要把 ui-serif / Georgia / 网络字体排在前面，否则 Times 永远不会被用到 */
+  --font-display: "Times New Roman", Times, serif;
+  --font-body:    "Times New Roman", Times, serif;
+  --font-mono:    "Times New Roman", Times, serif;
   /* slogan 保留原来的展示字体，不参与全局字体统一 */
   --font-slogan:  "Cormorant Garamond", serif;
 
