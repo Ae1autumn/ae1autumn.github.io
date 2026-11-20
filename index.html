@@ -724,8 +724,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 #post-page.is-fullscreen .fs-float{display:flex}
 .fs-chap{
-  /* 最宽时两侧各留 12px，并与已用时间隔开 12px（时间条约 60px） */
-  left:var(--panel-gap);max-width:calc(100vw - 96px);overflow:hidden;cursor:pointer;
+  /* 左侧贴 --panel-gap；最宽时右缘与计时器之间保留 2 个 --panel-gap。
+     计时器的实际宽度（数字位数、代码图标切换、字体加载都会变）由 JS 写入 --fs-timer-w，
+     不再用固定值估算，避免标题过长时被算宽而挤到计时器 */
+  left:var(--panel-gap);max-width:calc(100vw - var(--fs-timer-w, 64px) - var(--panel-gap) * 4);overflow:hidden;cursor:pointer;
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.02em;color:var(--text-2);
   transition:border-color .18s;touch-action:manipulation;
 }
@@ -763,9 +765,9 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 .fs-chap-block.collapsed{max-width:0!important;margin-left:0!important;opacity:0;pointer-events:none}
 /* 全屏有子章节：父项保持自然宽度、子项吃剩余空间；
-   父项超过容器最大宽度一半时，容器撑满、两项等宽各占一半 */
+   父项超过容器最大宽度一半时，容器撑满（由上面的 max-width 收口），两项等宽各占一半 */
 .fs-chap.has-child #fs-chap-2{flex:1 1 0}
-.fs-chap.has-child.is-split{width:calc(100vw - 96px)}
+.fs-chap.has-child.is-split{width:100%}
 .fs-chap.has-child.is-split .fs-chap-block{flex:1 1 0}
 .fs-chap-sep{color:var(--text-3);flex-shrink:0;overflow:hidden;max-width:2.2em;padding:0 .5em;white-space:nowrap;
   transition:max-width .35s var(--ease-out),opacity .25s,padding .35s var(--ease-out)}
@@ -2859,6 +2861,25 @@ window.__siteDataReady.then(function hydrateViews() {
 
   function collapseItem(item) {
     if (!item || !item.isConnected) return;
+    const dialog = item.closest ? item.closest('.fp-dialog') : null;
+    /* 删掉的是最后一项时没有别的条目接替它的位置：
+       行高收成 0 会把整个对话框压扁，随后空状态占位符又把对话框撑回去，
+       看起来就是“先塌陷、再被填回来”。所以这一项不做行高塌陷，
+       改为移除后让对话框高度直接平滑过渡到空状态。 */
+    const isLast = !list.querySelector('.fp-item:not(.is-deleting)');
+    if (isLast && dialog) {
+      const from = dialog.offsetHeight;
+      item.remove();
+      render();
+      if (REDUCED_MOTION || typeof dialog.animate !== 'function') return;
+      const to = dialog.offsetHeight;
+      if (Math.abs(from - to) < 1) return;
+      dialog.animate(
+        [{ height: from + 'px' }, { height: to + 'px' }],
+        { duration: COLLAPSE_MS, easing: 'cubic-bezier(.22,1,.36,1)' }
+      );
+      return;
+    }
     /* 先锁定当前高度，再交给 CSS 把高度/内边距/外边距平滑收成 0 */
     item.style.height = item.offsetHeight + 'px';
     void item.offsetHeight;
@@ -3499,6 +3520,19 @@ window.__siteDataReady.then(function () {
     } catch (e) {}
   }
 
+  /* 全屏章节指示器的可用宽度取决于计时器实测宽度：
+     把 --fs-timer-w 写回 CSS，max-width 里再留出 2 个 --panel-gap */
+  function syncFsChapMaxWidth() {
+    const w = fsTimer.getBoundingClientRect().width;
+    if (!(w > 0)) return; // 非全屏时计时器隐藏，保留上次的值
+    fsChap.style.setProperty('--fs-timer-w', w.toFixed(2) + 'px');
+    if (isFullscreen && fsChap.classList.contains('has-child')) updateChapterSplit();
+  }
+  if ('ResizeObserver' in window) {
+    /* 数字位数变长、代码图标切换、字体替换都会改变计时器宽度 */
+    new ResizeObserver(syncFsChapMaxWidth).observe(fsTimer);
+  }
+
   function setFullscreen(on) {
     if (isFullscreen === on) return;
     isFullscreen = on;
@@ -3513,6 +3547,7 @@ window.__siteDataReady.then(function () {
     btnFullscreen.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (on) {
       requestNativeFullscreen();         // 触发浏览器原生全屏
+      syncFsChapMaxWidth();              // 先量计时器宽度，后面的分割判断才准确
       updateChapterBlocks();             // 同步悬浮章节指示器
       requestAnimationFrame(function () {
         updateChapterSplit();
@@ -4141,7 +4176,7 @@ window.__siteDataReady.then(function () {
 
   /* 父项上限 = 指示器容器最大宽度的一半。
      普通模式：容器最多占工具栏一半，所以取工具栏内容宽度 / 4 作为阈值；
-     全屏模式：直接取悬浮条最大宽度（100vw - 96px）的一半。
+     全屏模式：容器最大宽度 = 视口 - 左右边距 - 计时器宽度 - 2 个元素边距（见 .fs-chap 的 max-width）。
      父项未超限：保持自然宽度，子项吃剩余空间；
      父项超限：切到 .is-split，容器撑满、两项等宽 */
   function updateChapterSplit() {
@@ -4164,7 +4199,11 @@ window.__siteDataReady.then(function () {
       return;
     }
     let fsMax = parseFloat(getComputedStyle(fsChap).maxWidth);
-    if (!(fsMax > 0)) fsMax = window.innerWidth - 96; // calc 未能解析时兜底
+    if (!(fsMax > 0)) {
+      // calc 未能解析时兜底：按计时器实测宽度 + 2 个元素边距倒算
+      const timerW = fsTimer.getBoundingClientRect().width || 64;
+      fsMax = window.innerWidth - timerW - GAP * 4;
+    }
     fsChap.classList.toggle('is-split', fsChap1.scrollWidth > fsMax / 2 + 1);
   }
 
@@ -5326,13 +5365,17 @@ window.__siteDataReady.then(function () {
     refreshVFades();
     refreshTocFades();
     updateCodeReading();
+    syncFsChapMaxWidth();
     updateChapterSplit();
   }
   window.addEventListener('resize', handleViewportResize, { passive: true });
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', handleViewportResize, { passive: true });
   }
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateChapterSplit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () {
+    syncFsChapMaxWidth();
+    updateChapterSplit();
+  });
 })();
 
 (function () {
