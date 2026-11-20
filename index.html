@@ -721,6 +721,22 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-toolbar-actions .icon-btn svg{width:16px;height:16px}
 .post-toolbar-actions .icon-btn.is-active{color:var(--accent);background:var(--surface)}
 
+/* ── 文章级功能开关（data.jsonc 中每篇文章的 disable 字段）──
+   sync_issues.py 从 frontmatter 的 disable: 或 issue 里的 <!-- disable: ... --> 生成，
+   默认全部启用；JS 在打开文章时切换 #post-page 上的 is-feat-off-* 类。 */
+#post-page.is-feat-off-chapters .post-chapters-wrap,
+#post-page.is-feat-off-chapters .fs-chap,
+#post-page.is-feat-off-timer .post-timer,
+#post-page.is-feat-off-timer .fs-timer,
+#post-page.is-feat-off-search #btn-search-post,
+#post-page.is-feat-off-comments #btn-comments,
+#post-page.is-feat-off-copy #btn-copy,
+#post-page.is-feat-off-fullscreen #btn-fullscreen{display:none!important}
+/* 章节指示器关掉后，工具按钮改为右对齐 */
+#post-page.is-feat-off-chapters:not(.is-toolbar-empty) .post-toolbar-row{justify-content:flex-end}
+/* 六个入口全部关掉时，不再留一条空工具栏 */
+#post-page.is-toolbar-empty .post-toolbar-row{display:none}
+
 /* ── 全屏阅读模式 ── */
 #post-page.is-fullscreen .post-toolbar-row,
 #post-page.is-fullscreen .post-header-row,
@@ -3582,6 +3598,53 @@ window.__siteDataReady.then(function () {
   const fsTimerLive     = fsTimer.querySelector('.fs-timer-live');
   const fsTimerCode     = fsTimer.querySelector('.fs-timer-code');
 
+  /* ── 文章级功能开关 ──
+     每篇文章的 disable 字段由 sync_issues.py 从 frontmatter 的 disable:
+     （或 issue 里的 <!-- disable: ... -->）生成，默认全部启用。 */
+  const FEATURE_KEYS = ['chapters', 'timer', 'search', 'comments', 'copy', 'fullscreen'];
+  const FEATURE_ALIASES = {
+    chapter: 'chapters', toc: 'chapters',
+    '章节': 'chapters', '目录': 'chapters', '章节指示器': 'chapters',
+    counter: 'timer', time: 'timer',
+    '计时': 'timer', '计时器': 'timer', '计数器': 'timer',
+    '搜索': 'search', '文内搜索': 'search', '查找': 'search',
+    comment: 'comments', giscus: 'comments', '评论': 'comments', '留言': 'comments',
+    '复制': 'copy', '拷贝': 'copy',
+    fs: 'fullscreen', '全屏': 'fullscreen', '全屏模式': 'fullscreen'
+  };
+  const FEATURE_ALL = ['all', '*', '全部', '所有', 'true', 'yes', 'on', '1'];
+  let featOff = {};
+
+  function parsePostDisable(value) {
+    const off = {};
+    if (value == null || value === false) return off;
+    let parts;
+    if (value === true) parts = ['all'];
+    else if (Array.isArray(value)) parts = value;
+    else parts = String(value).split(/[,，、\s]+/);
+    parts.forEach(function (part) {
+      const token = String(part == null ? '' : part).trim().toLowerCase();
+      if (!token) return;
+      if (FEATURE_ALL.indexOf(token) !== -1) { off.all = true; return; }
+      const name = FEATURE_KEYS.indexOf(token) !== -1 ? token : FEATURE_ALIASES[token];
+      if (name) off[name] = true;
+    });
+    return off;
+  }
+
+  function applyPostFeatures(meta) {
+    const off = parsePostDisable(meta && meta.disable);
+    featOff = {};
+    FEATURE_KEYS.forEach(function (key) {
+      const isOff = !!(off.all || off[key]);
+      featOff[key] = isOff;
+      postPage.classList.toggle('is-feat-off-' + key, isOff);
+    });
+    const noActions = featOff.copy && featOff.comments && featOff.search && featOff.fullscreen;
+    postPage.classList.toggle('is-toolbar-empty', featOff.chapters && noActions);
+    if (featOff.fullscreen && isFullscreen) setFullscreen(false);
+  }
+
   /* 标签页标题：打开文章时替换为文章标题，关闭后还原站点标题 */
   const SITE_TITLE = document.title;
   function setDocumentTitle(title) {
@@ -3647,6 +3710,7 @@ window.__siteDataReady.then(function () {
   }
 
   function setFullscreen(on) {
+    if (on && featOff.fullscreen) return;
     if (isFullscreen === on) return;
     isFullscreen = on;
     if (!on) {
@@ -3752,6 +3816,7 @@ window.__siteDataReady.then(function () {
   let pendingOpen = null;
 
   function _doOpen(name) {
+    if (featOff[name]) return; // 该面板在本篇被 disable 关掉
     clearTimeout(closeTimers[name]); delete closeTimers[name];
     if (pendingOpen) { clearTimeout(pendingOpen); pendingOpen = null; }
     const el = PANEL_EL[name];
@@ -3790,6 +3855,7 @@ window.__siteDataReady.then(function () {
     if (openPanel) _doClose(openPanel);
   }
   function togglePanel(name) {
+    if (featOff[name]) return;
     if (openPanel === name) { _doClose(name); return; }
     if (openPanel) {
       _doClose(openPanel);
@@ -3921,6 +3987,7 @@ window.__siteDataReady.then(function () {
 
   /* ── 计时 ── */
   function startTimer() {
+    if (featOff.timer) return; // 本篇关闭了计时器，不再累计
     if (timerInterval || inLongCode) return;
     timerInterval = setInterval(function () {
       usedSeconds++;
@@ -3930,7 +3997,7 @@ window.__siteDataReady.then(function () {
   }
   function pauseTimer() { clearInterval(timerInterval); timerInterval = null; }
   function canRunTimer() {
-    return !!currentSlug && contentReady && !loadFailed && !isEmptyPost &&
+    return !featOff.timer && !!currentSlug && contentReady && !loadFailed && !isEmptyPost &&
       document.visibilityState !== 'hidden' &&
       !postHeaderRow.classList.contains('is-loading');
   }
@@ -5001,6 +5068,7 @@ window.__siteDataReady.then(function () {
     searchInput.value = '';
 
     currentSlug = slug; currentMeta = meta;
+    applyPostFeatures(meta);
     setDocumentTitle(String(window.postValue(meta && meta.title, 'Untitled')).trim());
     closeAllPanels();
     syncBlurHeight();
@@ -5292,7 +5360,7 @@ window.__siteDataReady.then(function () {
     }, GISCUS_ORIGIN);
   }
   function mountGiscus() {
-    if (!currentSlug || giscusFailed) return;
+    if (!currentSlug || giscusFailed || featOff.comments) return;
 
     /* data.jsonc 还没加载完就点了评论：等数据就绪再挂载，
        否则会拿空配置误判成「评论不可用」并永久锁死 */
@@ -5409,18 +5477,18 @@ window.__siteDataReady.then(function () {
   /* 桌面端：单击 Ctrl 进入 / 退出全屏（Ctrl 组合键不触发） */
   let ctrlSolo = false;
   document.addEventListener('keydown', function (e) {
-    if (!currentSlug || loadFailed) { ctrlSolo = false; return; }
+    if (!currentSlug || loadFailed || featOff.fullscreen) { ctrlSolo = false; return; }
     if (e.key === 'Control' && !e.repeat && !e.metaKey && !e.altKey && !e.shiftKey) { ctrlSolo = true; return; }
     ctrlSolo = false;
   });
   document.addEventListener('keyup', function (e) {
-    if (e.key === 'Control' && ctrlSolo && currentSlug && !loadFailed && !isEmptyPost) setFullscreen(!isFullscreen);
+    if (e.key === 'Control' && ctrlSolo && currentSlug && !loadFailed && !isEmptyPost && !featOff.fullscreen) setFullscreen(!isFullscreen);
     ctrlSolo = false;
   });
 
   document.addEventListener('keydown', function (e) {
-    // Ctrl/Cmd+F：文章页打开时接管为文内搜索
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && currentSlug && !loadFailed && !isEmptyPost) {
+    // Ctrl/Cmd+F：文章页打开时接管为文内搜索（本篇关掉搜索时交还给浏览器）
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && currentSlug && !loadFailed && !isEmptyPost && !featOff.search) {
       e.preventDefault();
       if (openPanel !== 'search') { closeAllPanels(); _doOpen('search'); }
       searchInput.focus(); searchInput.select();
