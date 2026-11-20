@@ -682,11 +682,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 .post-chapter-sep.collapsed{max-width:0!important;padding:0;opacity:0}
 .post-chapter-block.collapsed{max-width:0!important;opacity:0;pointer-events:none}
-/* 有子章节时：父项保持自然宽度（能被完整显示就不动它），剩余空间让给子项；
-   只有父项自身都放不下时，JS 才加 .is-split 退回两者等宽。
-   整体宽度仍受 .post-chapters-wrap 的 50% 上限约束；
-   无子章节时父项保持内容宽度，最多不超过工具栏一半 */
+/* 有子章节时：父项最多占指示器容器最大宽度的一半，未超限时保持自然宽度，剩余空间给子项；
+   父项超过该上限时由 JS 加 .is-split：容器撑到 50% 上限，两项等宽各占一半 */
 .post-chapters-wrap.has-child #post-chap-2{flex:1 1 0}
+.post-chapters-wrap.has-child.is-split{width:50%}
 .post-chapters-wrap.has-child.is-split .post-chapter-block{flex:1 1 0}
 .post-chapters-hint{
   font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);letter-spacing:.04em;
@@ -733,7 +732,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* 不用容器 gap：折叠元素也会占 gap，导致右侧多余空隙 */
 .fs-chap-block{
   display:flex;align-items:center;white-space:nowrap;min-width:0;max-width:100%;
-  flex:1 1 0;
+  flex:0 1 auto;
   overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
   transition:max-width .35s var(--ease-out),opacity .25s,margin .35s var(--ease-out);
 }
@@ -755,6 +754,11 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   mask-image:linear-gradient(to right,transparent,#000 16px,#000 calc(100% - 16px),transparent);
 }
 .fs-chap-block.collapsed{max-width:0!important;margin-left:0!important;opacity:0;pointer-events:none}
+/* 全屏有子章节：父项保持自然宽度、子项吃剩余空间；
+   父项超过容器最大宽度一半时，容器撑满、两项等宽各占一半 */
+.fs-chap.has-child #fs-chap-2{flex:1 1 0}
+.fs-chap.has-child.is-split{width:calc(100vw - 96px)}
+.fs-chap.has-child.is-split .fs-chap-block{flex:1 1 0}
 .fs-chap-sep{color:var(--text-3);flex-shrink:0;overflow:hidden;max-width:2.2em;padding:0 .5em;white-space:nowrap;
   transition:max-width .35s var(--ease-out),opacity .25s,padding .35s var(--ease-out)}
 .fs-chap-sep.collapsed{max-width:0!important;padding:0;opacity:0}
@@ -3443,7 +3447,10 @@ window.__siteDataReady.then(function () {
     if (on) {
       requestNativeFullscreen();         // 触发浏览器原生全屏
       updateChapterBlocks();             // 同步悬浮章节指示器
-      requestAnimationFrame(function () { updateFade(fsChap1); updateFade(fsChap2); });
+      requestAnimationFrame(function () {
+        updateChapterSplit();
+        updateFade(fsChap1); updateFade(fsChap2);
+      });
     } else {
       exitNativeFullscreen();            // 与浏览器全屏状态保持一致
       requestAnimationFrame(updateChapterSplit); // 工具栏恢复后再量一次宽度
@@ -4045,11 +4052,10 @@ window.__siteDataReady.then(function () {
 
   function syncChapterIndicator(parts, current) {
     const has = !!current.parent;
-    /* has-child 只对普通模式的 .post-chapters-wrap 生效：父项自然宽度，子项吃剩余空间。
-       is-split 先清掉，等重新测量后再决定是否退回等宽 */
+    /* has-child 只对普通模式的 .post-chapters-wrap 生效：父项自然宽度，子项吃剩余空间；
+       is-split 由 updateChapterSplit 测量父项宽度后决定 */
     const root = parts.hint.parentElement;
     root.classList.toggle('has-child', has && !!current.child);
-    root.classList.remove('is-split');
     parts.hint.classList.toggle('collapsed', has);
     parts.first.classList.toggle('collapsed', !has);
     rollText(parts.first, current.parent);
@@ -4066,17 +4072,33 @@ window.__siteDataReady.then(function () {
     }, 380);
   }
 
-  /* 父项能否完整显示：能则保持自然宽度（子项吃剩余），
-     自身放不下时切到 .is-split 让两段等宽 */
+  /* 父项上限 = 指示器容器最大宽度的一半。
+     普通模式：容器最多占工具栏一半，所以取工具栏内容宽度 / 4 作为阈值；
+     全屏模式：直接取悬浮条最大宽度（100vw - 96px）的一半。
+     父项未超限：保持自然宽度，子项吃剩余空间；
+     父项超限：切到 .is-split，容器撑满、两项等宽 */
   function updateChapterSplit() {
-    if (!chapWrap.classList.contains('has-child')) {
+    if (chapWrap.classList.contains('has-child')) {
+      const row = chapWrap.parentElement;
+      const rs = row && getComputedStyle(row);
+      const rowInner = row
+        ? row.clientWidth - parseFloat(rs.paddingLeft || 0) - parseFloat(rs.paddingRight || 0)
+        : 0;
+      if (rowInner > 0) { // 工具栏隐藏时（如全屏）不测
+        chapWrap.classList.toggle('is-split', chap1.scrollWidth > rowInner / 4 + 1);
+      }
+    } else {
       chapWrap.classList.remove('is-split');
+    }
+
+    if (!isFullscreen) return; // 悬浮条隐藏时不测
+    if (!fsChap.classList.contains('has-child')) {
+      fsChap.classList.remove('is-split');
       return;
     }
-    const avail = chapWrap.clientWidth;
-    if (avail <= 0) return; // 工具栏隐藏（如全屏）时不测
-    const need = chap1.scrollWidth + chapSep.offsetWidth;
-    chapWrap.classList.toggle('is-split', need > avail + 1);
+    let fsMax = parseFloat(getComputedStyle(fsChap).maxWidth);
+    if (!(fsMax > 0)) fsMax = window.innerWidth - 96; // calc 未能解析时兜底
+    fsChap.classList.toggle('is-split', fsChap1.scrollWidth > fsMax / 2 + 1);
   }
 
   function resetChapterIndicator(parts) {
@@ -4097,11 +4119,10 @@ window.__siteDataReady.then(function () {
     }
     currentChap1 = c.parent;
     currentChap2 = c.child;
-    /* 两段原本都可见时没有折叠过渡，可立即测量；否则等过渡结束 */
-    const bothShown = !chap1.classList.contains('collapsed') && !chap2.classList.contains('collapsed');
     syncChapterIndicator({ hint: chapHint, first: chap1, sep: chapSep, second: chap2 }, c);
     syncChapterIndicator({ hint: fsChapHint, first: fsChap1, sep: fsChapSep, second: fsChap2 }, c);
-    if (bothShown && c.child) requestAnimationFrame(updateChapterSplit);
+    /* scrollWidth 不受折叠过渡影响，可立即判断；380ms 后再兜底测一次 */
+    updateChapterSplit();
     setTimeout(updateChapterSplit, 380);
     syncTocActive();
   }
