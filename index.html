@@ -1526,7 +1526,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
       </button>
     </div>
     <div class="menu-row">
-      <a class="menu-link-btn" id="menu-link-btn" href="/#/post/link" aria-label="链接">
+      <a class="menu-link-btn" id="menu-link-btn" href="#/post/link" target="_self" aria-label="链接">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
@@ -5640,8 +5640,6 @@ window.__siteDataReady.then(function () {
 
     const a = t.closest('a[href]');
     if (!a) return;
-    const raw = a.getAttribute('href');
-    if (!raw || raw.charAt(0) === '#' || a.hasAttribute('download')) return;
 
     /* 汉堡菜单里的链接按钮不做跳转确认，直接交给浏览器打开；
        先收起菜单，避免同一 hash 重复点击时菜单停在原地 */
@@ -5649,6 +5647,9 @@ window.__siteDataReady.then(function () {
       if (window.closeSiteMenu) window.closeSiteMenu(false);
       return;
     }
+
+    const raw = a.getAttribute('href');
+    if (!raw || raw.charAt(0) === '#' || a.hasAttribute('download')) return;
 
     e.preventDefault();
     openNav(a.href);
