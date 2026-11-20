@@ -232,10 +232,10 @@ a{text-decoration:none}
 .sm-tab-btn.is-active{color:var(--text)}
 .sm-tab-btn:hover:not(.is-active){color:var(--text-2)}
 .sm-tab-btn svg{display:block}
-/* 收起后的三段点条 */
-.sm-dots-row{display:flex;gap:4px;width:100%;height:10px;align-items:center;padding:0 2px}
-.sm-dot-bar{flex:1;height:2px;border-radius:2px;background:var(--border);cursor:pointer;transition:background-color .3s}
-.sm-dot-bar.is-active{background:var(--text-2)}
+/* 收起后的点条 */
+.sm-dots-row,.sr-dots-row{display:flex;gap:4px;width:100%;height:10px;align-items:center;padding:0 2px}
+.sm-dot-bar,.sr-dot-bar{flex:1;height:2px;border-radius:2px;background:var(--border);cursor:pointer;transition:background-color .3s}
+.sm-dot-bar.is-active,.sr-dot-bar.is-active{background:var(--text-2)}
 /* 结果 */
 .sm-results{
   flex:1;min-height:0;overflow-y:auto;
@@ -997,6 +997,7 @@ a{text-decoration:none}
 .sr-scroll.fade-l.fade-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(to right,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
 /* 文内搜索：结果过滤 Tab（沿用全站搜索的指示块与滑块动画） */
 .sr-filter-wrap{flex-shrink:0;max-height:var(--control-h);padding:.45rem .55rem .55rem}
+.sr-filter-tabs-wrap{overflow:hidden;transition:height .35s cubic-bezier(.77,0,.175,1)}
 .sr-filter-tabs{
   position:relative;display:flex;max-height:var(--control-h);padding:4px;
   border:var(--hairline) solid var(--border);border-radius:var(--radius-md);
@@ -1422,20 +1423,22 @@ a{text-decoration:none}
       <div class="sr-results" id="sr-results"></div>
     </div>
     <div class="sr-filter-wrap">
-      <div class="sr-filter-tabs" id="sr-filter-tabs" role="tablist" aria-label="搜索结果过滤">
-        <div class="sr-filter-slider" id="sr-filter-slider" aria-hidden="true"></div>
-        <button class="sr-filter-btn is-active" data-filter="body" role="tab" aria-selected="true" aria-label="正文" title="正文">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="Times New Roman, serif" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
-        </button>
-        <button class="sr-filter-btn" data-filter="code" role="tab" aria-selected="false" aria-label="代码" title="代码">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="7 7 2 12 7 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 7 22 12 17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="5" x2="10" y2="19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        </button>
-        <button class="sr-filter-btn" data-filter="fold" role="tab" aria-selected="false" aria-label="折叠的块与链接文本" title="折叠的块与链接文本">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2h6l6 6-6 6-6-6V2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" opacity="0.7"/></svg>
-        </button>
-        <button class="sr-filter-btn" data-filter="all" role="tab" aria-selected="false" aria-label="全文" title="全文">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v6h6v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15.5" cy="16.5" r="4.2" stroke="currentColor" stroke-width="1.3"/><path d="m18.6 19.6 2.4 2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        </button>
+      <div class="sr-filter-tabs-wrap" id="sr-filter-tabs-wrap">
+        <div class="sr-filter-tabs" id="sr-filter-tabs" role="tablist" aria-label="搜索结果过滤">
+          <div class="sr-filter-slider" id="sr-filter-slider" aria-hidden="true"></div>
+          <button class="sr-filter-btn is-active" data-filter="body" role="tab" aria-selected="true" aria-label="正文" title="正文">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="Times New Roman, serif" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
+          </button>
+          <button class="sr-filter-btn" data-filter="code" role="tab" aria-selected="false" aria-label="代码" title="代码">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="7 7 2 12 7 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 7 22 12 17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="5" x2="10" y2="19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <button class="sr-filter-btn" data-filter="fold" role="tab" aria-selected="false" aria-label="折叠的块与链接文本" title="折叠的块与链接文本">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2h6l6 6-6 6-6-6V2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" opacity="0.7"/></svg>
+          </button>
+          <button class="sr-filter-btn" data-filter="all" role="tab" aria-selected="false" aria-label="全文" title="全文">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v6h6v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15.5" cy="16.5" r="4.2" stroke="currentColor" stroke-width="1.3"/><path d="m18.6 19.6 2.4 2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -2959,7 +2962,7 @@ window.__siteDataReady.then(function () {
     closeTimers[name] = setTimeout(function () {
       delete closeTimers[name]; el.classList.remove('is-ready');
     }, 460);
-    if (name === 'search') clearSearch();
+    if (name === 'search') { clearSearch(); stopFilterAutoCollapse(); }
   }
   function closeAllPanels() {
     if (pendingOpen) { clearTimeout(pendingOpen); pendingOpen = null; }
@@ -3522,12 +3525,17 @@ window.__siteDataReady.then(function () {
   let filterIdx = 0;
   const srResults = $('sr-results');
   const searchMeta = panelSearch.querySelector('.search-meta');
+  const filterTabsWrap = $('sr-filter-tabs-wrap');
   const filterTabs = $('sr-filter-tabs');
   const filterSlider = $('sr-filter-slider');
   const filterBtns = Array.prototype.slice.call(filterTabs.querySelectorAll('.sr-filter-btn'));
   const FILTERS = ['body', 'code', 'fold', 'all'];
+  const FILTER_NAMES = ['正文', '代码', '折叠的块与链接文本', '全文'];
   const BOUNDARY = /[，。！？；：、,.!?;:"'“”‘’（）()《》〈〉「」『』\s]/;
   const mobileSearchMQ = window.matchMedia('(hover: none), (pointer: coarse)');
+  let filterDotMode = false;
+  let filterDotTimer = null;
+  let filterTabsTransitionTimer = null;
 
   /* ── 过滤 Tab：与全站搜索同一套滑块动画 ── */
   function updateFilterButtons(idx) {
@@ -3557,7 +3565,81 @@ window.__siteDataReady.then(function () {
     }
   }
 
+  function buildFilterTabs() {
+    filterTabsWrap.innerHTML = '';
+    filterTabs.innerHTML = '';
+    filterTabs.appendChild(filterSlider);
+    filterBtns.forEach(function (b) { filterTabs.appendChild(b); });
+    filterTabsWrap.appendChild(filterTabs);
+    updateFilterButtons(filterIdx);
+  }
+
+  function stopFilterAutoCollapse() {
+    clearTimeout(filterDotTimer);
+    clearTimeout(filterTabsTransitionTimer);
+    filterDotMode = false;
+    filterTabsWrap.style.height = '';
+  }
+
+  function expandFilterTabs() {
+    clearTimeout(filterTabsTransitionTimer);
+    filterDotMode = false;
+    buildFilterTabs();
+    const fullH = filterTabs.scrollHeight;
+    requestAnimationFrame(function () {
+      if (openPanel !== 'search' || filterDotMode) return;
+      filterTabsWrap.style.height = fullH + 'px';
+      updateFilterSlider(filterIdx, true);
+      filterTabsTransitionTimer = setTimeout(function () { filterTabsWrap.style.height = ''; }, 380);
+    });
+  }
+
+  function collapseFilterToDots() {
+    if (filterDotMode || openPanel !== 'search') return;
+    clearTimeout(filterDotTimer);
+    clearTimeout(filterTabsTransitionTimer);
+    filterDotMode = true;
+    filterTabsWrap.style.height = filterTabsWrap.scrollHeight + 'px';
+    filterTabsWrap.getBoundingClientRect();
+    requestAnimationFrame(function () {
+      if (!filterDotMode || openPanel !== 'search') return;
+      filterTabsWrap.style.height = '10px';
+      filterTabsTransitionTimer = setTimeout(function () {
+        if (!filterDotMode || openPanel !== 'search') return;
+        filterTabsWrap.innerHTML = '';
+        const row = document.createElement('div');
+        row.className = 'sr-dots-row';
+        FILTERS.forEach(function (_, i) {
+          const bar = document.createElement('button');
+          bar.type = 'button';
+          bar.className = 'sr-dot-bar' + (i === filterIdx ? ' is-active' : '');
+          bar.setAttribute('aria-label', '切换到' + FILTER_NAMES[i]);
+          bar.setAttribute('aria-pressed', String(i === filterIdx));
+          bar.addEventListener('mousedown', function (e) { e.preventDefault(); });
+          bar.addEventListener('click', function () {
+            setFilter(i);
+            expandFilterTabs();
+            resetFilterDotTimer();
+          });
+          row.appendChild(bar);
+        });
+        filterTabsWrap.appendChild(row);
+        filterTabsWrap.style.height = '10px';
+      }, 360);
+    });
+  }
+
+  function resetFilterDotTimer() {
+    clearTimeout(filterDotTimer);
+    if (openPanel !== 'search' || !searchInput.matches(':focus')) return;
+    filterDotTimer = setTimeout(function () {
+      if (openPanel === 'search' && searchInput.matches(':focus') && !filterDotMode) collapseFilterToDots();
+    }, 5000);
+  }
+
   function resetSearchFilter() {
+    stopFilterAutoCollapse();
+    buildFilterTabs();
     updateFilterButtons(0);
     requestAnimationFrame(function () { updateFilterSlider(0, true); });
   }
@@ -3574,7 +3656,11 @@ window.__siteDataReady.then(function () {
   filterBtns.forEach(function (b, i) {
     /* 点击 Tab 不抢走输入框焦点 */
     b.addEventListener('mousedown', function (e) { e.preventDefault(); });
-    b.addEventListener('click', function () { setFilter(i); });
+    b.addEventListener('click', function () {
+      setFilter(i);
+      if (filterDotMode) expandFilterTabs();
+      resetFilterDotTimer();
+    });
   });
 
   function clearSearch() {
@@ -3790,11 +3876,24 @@ window.__siteDataReady.then(function () {
     else jumpToHit(hitIdx + delta);
   }
 
+  searchInput.addEventListener('focus', function () {
+    if (filterDotMode) expandFilterTabs();
+    resetFilterDotTimer();
+  });
+  searchInput.addEventListener('blur', function () {
+    clearTimeout(filterDotTimer);
+  });
   searchInput.addEventListener('input', function () {
     clearTimeout(searchTimer);
+    if (filterDotMode) expandFilterTabs();
+    resetFilterDotTimer();
     searchTimer = setTimeout(function () { runSearch(searchInput.value); }, 140);
   });
   searchInput.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== 'Escape') {
+      if (filterDotMode) expandFilterTabs();
+      resetFilterDotTimer();
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       /* 重新打开面板时高亮已被清空但关键词还在：此时 Enter 应重新执行搜索 */
