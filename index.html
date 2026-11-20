@@ -161,10 +161,8 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   display:flex;align-items:center;justify-content:center;
   width:40px;height:40px;border-radius:var(--radius-sm);flex-shrink:0;
   color:var(--text-2);
-  transition:color .18s,background-color .18s,transform .18s;
+  transition:color .18s,background-color .18s;
 }
-.icon-btn:hover{color:var(--text);background:var(--surface)}
-.icon-btn:active{transform:scale(.92)}
 .icon-btn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 #search-modal{
@@ -237,7 +235,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   color:var(--text-3);transition:color .25s;
 }
 .sm-tab-btn.is-active{color:var(--text)}
-.sm-tab-btn:hover:not(.is-active){color:var(--text-2)}
 .sm-tab-btn svg{display:block}
 /* 收起后的点条 */
 .sm-dots-row,.sr-dots-row{display:flex;gap:4px;width:100%;height:10px;align-items:center;padding:0 2px}
@@ -262,7 +259,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   padding:.7rem .9rem;background:var(--surface);
   transition:border-color .18s,transform .18s;
 }
-.sm-result:hover{border-color:var(--text-3);transform:translateY(-1px)}
+@media (hover:hover){.sm-result:hover{transform:translateY(-1px)}}
 .sm-result-top{display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem}
 .sm-result-date{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);letter-spacing:.04em}
 .sm-result-sep{width:14px;height:1px;background:var(--border)}
@@ -317,12 +314,12 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   background:var(--surface);
   padding:1.15rem 1.25rem .95rem;
   cursor:pointer;
-  transition:border-color .2s,background-color .3s,transform .25s var(--ease-out),box-shadow .25s var(--ease-out);
+  transition:border-color .2s,background-color .3s,transform .25s var(--ease-out);
 }
-.card:hover{
-  border-color:var(--text-3);
-  transform:translateY(-2px);
-  box-shadow:0 10px 28px -12px var(--shadow-drop);
+@media (hover:hover){
+  .card:hover{
+    transform:translateY(-2px);
+  }
 }
 /* 朱砂折角：悬停时微微掀起 */
 .card-corner{
@@ -332,7 +329,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   border-top-right-radius:var(--radius);
   transition:width .25s var(--ease-out),height .25s var(--ease-out);
 }
-.card:hover .card-corner{width:34px;height:34px}
+@media (hover:hover){.card:hover .card-corner{width:34px;height:34px}}
 .card-title{
   font-family:var(--font-display);font-size:1.18rem;font-weight:500;
   color:var(--title);margin-bottom:.55rem;
@@ -412,7 +409,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   border:var(--hairline) solid var(--border);
   transition:color .18s,background-color .18s;
 }
-.menu-link-btn:hover{color:var(--text);background:color-mix(in srgb,var(--bg) 82%,var(--text-3))}
 .menu-link-btn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 /* 链接与占位图标并排：不改变菜单高度 */
 .menu-row{display:flex;align-items:center;gap:12px;flex-shrink:0}
@@ -439,7 +435,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 .theme-seg svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .theme-seg.is-active{color:var(--text)}
-.theme-seg:hover:not(.is-active){color:var(--text-2)}
 
 /* ── 最近浏览 ── */
 #footprint-modal{
@@ -476,7 +471,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   transition:color .18s,background-color .18s;
 }
 .fp-clear{width:32px;flex:0 0 32px;padding:0}
-.fp-clear:hover,.fp-close:hover{color:var(--text);background:var(--bg)}
+.fp-clear[hidden]{display:none}
 .fp-clear svg,.fp-close svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .fp-clear .fp-clear-check{display:none}
 .fp-clear.is-confirm .fp-clear-trash{color:var(--fp-danger)}
@@ -500,7 +495,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   touch-action:manipulation;
 }
-.fp-item:hover{border-color:var(--text-3);transform:translateY(-1px)}
+@media (hover:hover){.fp-item:hover{transform:translateY(-1px)}}
 .fp-item-main{flex:1;min-width:0}
 .fp-item-title{
   display:block;font-family:var(--font-display);font-size:.95rem;color:var(--title);
@@ -620,7 +615,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   color:var(--text-2);font-family:var(--font-mono);font-size:.8rem;letter-spacing:.08em;
   padding:.5rem 1.3rem;transition:border-color .2s,color .2s;
 }
-.post-reload-btn:hover{border-color:var(--accent);color:var(--accent)}
 
 /* 空文章：居中提示 + 禁用态 */
 .post-content.is-empty{display:flex;align-items:center;justify-content:center;padding:0}
@@ -720,7 +714,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   font-family:var(--font-mono);font-size:.72rem;letter-spacing:.02em;color:var(--text-2);
   transition:border-color .18s;touch-action:manipulation;
 }
-.fs-chap:hover{border-color:var(--accent)}
 /* 阅读进度：背景填充（宽度由 JS 写入 --fs-progress） */
 .fs-chap::before{
   content:"";position:absolute;left:0;top:0;bottom:0;border-radius:inherit;
@@ -830,7 +823,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   color:var(--text-2);
   transition:color .18s,background-color .18s;
 }
-.post-content .code-toggle:hover{color:var(--accent);background:color-mix(in srgb,var(--border) 45%,transparent)}
+.post-content .code-toggle:hover{color:var(--accent)}
 .post-content .code-chevron{
   width:16px;height:16px;
   fill:currentColor;stroke:currentColor;stroke-width:2.4;
@@ -1060,7 +1053,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .panel-title{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;color:var(--text-3)}
 .panel-head-actions{display:flex;align-items:center;gap:.2rem;flex-shrink:0}
 .panel-close{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-3);transition:color .18s,background-color .18s}
-.panel-close:hover{color:var(--text);background:var(--bg)}
 .panel-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .panel-body{flex:1;overflow-y:auto;overscroll-behavior:contain}
 
@@ -1073,7 +1065,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   font-size:.85rem;line-height:1.5;color:var(--text-2);/* 目录项：与文内搜索结果项一致，统一 1.5 */
   transition:background-color .15s,color .15s;
 }
-.toc-item:hover{background:var(--bg);color:var(--text)}
 .toc-item .toc-no{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);flex-shrink:0;letter-spacing:.03em}
 /* 目录文字单行横向滚动；编号固定在左侧，不跟着滚走 */
 .toc-item .toc-scroll{
@@ -1122,7 +1113,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   transition:background-color .15s,color .15s;
 }
 .sr-item + .sr-item{border-top:var(--hairline) solid var(--border)}
-.sr-item:hover{background:var(--bg);color:var(--text)}
 .sr-item.is-active{color:var(--accent)}
 .sr-scroll{
   display:block;overflow-x:auto;overflow-y:hidden;white-space:nowrap;
@@ -1155,7 +1145,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   color:var(--text-3);transition:color .25s;
 }
 .sr-filter-btn.is-active{color:var(--text)}
-.sr-filter-btn:hover:not(.is-active){color:var(--text-2)}
 .sr-filter-btn svg{display:block}
 
 /* 纵向边缘渐隐（正文 / 目录 / 搜索结果共用）：有隐藏内容的一侧文字淡出 */
@@ -1209,7 +1198,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   font-size:.85rem;letter-spacing:.02em;
   transition:color .18s,background-color .18s;
 }
-.copy-main:hover{color:var(--text);background:color-mix(in srgb,var(--bg) 82%,var(--text-3))}
 .copy-main svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 /* 下：MD / TXT 双块（与上方同高） */
 .copy-split{display:flex;gap:12px}
@@ -1220,7 +1208,6 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   border:var(--hairline) solid var(--border);
   transition:color .18s,background-color .18s;
 }
-.copy-cell:hover{color:var(--accent);background:color-mix(in srgb,var(--bg) 82%,var(--text-3))}
 .copy-cell svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .copy-cell .ic-t{font-family:var(--font-mono);font-size:8.5px;font-weight:700;stroke:none;fill:currentColor}
 /* 复制成功：原位替换为绿框+深绿底+对勾 */
@@ -1270,12 +1257,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   background:var(--bg);color:var(--text-2);
   border:var(--hairline) solid var(--border);
 }
-.nav-cancel:hover{color:var(--text);background:color-mix(in srgb,var(--bg) 82%,var(--text-3))}
 .nav-go{
   background:var(--accent);color:var(--bg);
   border:var(--hairline) solid var(--accent);
 }
-.nav-go:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 
 #lightbox{
   position:fixed;inset:0;z-index:var(--z-lightbox);
@@ -1300,6 +1285,71 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 @media (max-width:560px){
   .post-chapter-block{max-width:38vw}
   .post-content{padding-top:1.6rem}
+}
+
+/* 按下时统一变为主题色（触屏设备同样生效） */
+.icon-btn:active,
+.menu-link-btn:active,
+.fp-clear:active,
+.fp-close:active,
+.panel-close:active,
+.copy-main:active,
+.copy-cell:active,
+.nav-cancel:active,
+.toc-item:active,
+.sr-item:active,
+.post-reload-btn:active,
+.fs-chap:active,
+.sm-tab-btn:active:not(.is-active),
+.theme-seg:active:not(.is-active),
+.sr-filter-btn:active:not(.is-active){
+  color:var(--accent);
+  border-color:var(--accent);
+}
+.card:active{
+  border-color:var(--accent);
+  transform:translateY(-2px);
+}
+.sm-result:active,.fp-item:active{
+  border-color:var(--accent);
+  transform:translateY(-1px);
+}
+/* 卡片/结果条目按下时标题使用主题色 */
+.card:active .card-title,
+.sm-result:active .sm-result-title,
+.fp-item:active .fp-item-title{
+  color:var(--accent);
+}
+/* 悬停时只变主题色，不出现背景色块加深 */
+@media (hover:hover){
+  .icon-btn:hover,
+  .menu-link-btn:hover,
+  .fp-clear:hover,
+  .fp-close:hover,
+  .panel-close:hover,
+  .copy-main:hover,
+  .copy-cell:hover,
+  .nav-cancel:hover,
+  .toc-item:hover,
+  .sr-item:hover,
+  .post-reload-btn:hover,
+  .fs-chap:hover,
+  .sm-tab-btn:hover:not(.is-active),
+  .theme-seg:hover:not(.is-active),
+  .sr-filter-btn:hover:not(.is-active){
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+  .sm-result:hover,
+  .fp-item:hover,
+  .card:hover{
+    border-color:var(--accent);
+  }
+  .card:hover .card-title,
+  .sm-result:hover .sm-result-title,
+  .fp-item:hover .fp-item-title{
+    color:var(--accent);
+  }
 }
 </style>
 <base target="_blank">
@@ -2739,6 +2789,7 @@ window.__siteDataReady.then(function hydrateViews() {
 
     list.hidden = !items.length;
     empty.hidden = !!items.length;
+    clearBtn.hidden = !items.length;
   }
 
   function open() {
