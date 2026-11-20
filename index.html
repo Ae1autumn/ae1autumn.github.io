@@ -721,9 +721,13 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-toolbar-actions .icon-btn svg{width:16px;height:16px}
 .post-toolbar-actions .icon-btn.is-active{color:var(--accent);background:var(--surface)}
 
-/* ── 文章级功能开关（data.jsonc 中每篇文章的 disable 字段）──
-   sync_issues.py 从 frontmatter 的 disable: 或 issue 里的 <!-- disable: ... --> 生成，
-   默认全部启用；JS 在打开文章时切换 #post-page 上的 is-feat-off-* 类。 */
+/* ── 文章级功能开关 ──
+   sync_issues.py 从 frontmatter 的 disable: / disabled:（或 issue 里的同名标记）
+   生成 data.jsonc 中每篇文章的 disable / disabled 字段，默认全部启用：
+   · disable  → 隐藏（is-feat-off-*）
+   · disabled → 淡化 + 禁用点击（is-feat-dim-*）；章节指示器只隐藏外观、
+                保留点击区域，计时器则直接移除并停止计时。
+   全屏模式下的 NaN 占位状态不参与这里的开关。 */
 #post-page.is-feat-off-chapters .post-chapters-wrap,
 #post-page.is-feat-off-chapters .fs-chap,
 #post-page.is-feat-off-timer .post-timer,
@@ -732,10 +736,22 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 #post-page.is-feat-off-comments #btn-comments,
 #post-page.is-feat-off-copy #btn-copy,
 #post-page.is-feat-off-fullscreen #btn-fullscreen{display:none!important}
+#post-page.is-feat-dim-search #btn-search-post,
+#post-page.is-feat-dim-comments #btn-comments,
+#post-page.is-feat-dim-copy #btn-copy,
+#post-page.is-feat-dim-fullscreen #btn-fullscreen{opacity:.32;pointer-events:none;cursor:default}
+/* 章节指示器 disabled：只把外观藏起来，按钮本身仍然可点（能打开目录） */
+#post-page.is-feat-dim-chapters .post-chapters-wrap,
+#post-page.is-feat-dim-chapters .fs-chap{opacity:0}
 /* 章节指示器关掉后，工具按钮改为右对齐 */
 #post-page.is-feat-off-chapters:not(.is-toolbar-empty) .post-toolbar-row{justify-content:flex-end}
 /* 六个入口全部关掉时，不再留一条空工具栏 */
 #post-page.is-toolbar-empty .post-toolbar-row{display:none}
+/* 有图标被 disable（隐藏）时，不再用 50% 上限约束章节指示器；它可以直接吃到
+   剩余空间，并与右侧（图标或容器边缘）至少保持 2rem。仅 disabled 淡化时图标
+   仍占位置，不解除限制。 */
+#post-page.is-chapters-wide .post-chapters-wrap{max-width:none;margin-right:2rem}
+#post-page.is-chapters-wide .post-chapters-wrap.has-child.is-split{width:calc(100% - 2rem)}
 
 /* ── 全屏阅读模式 ── */
 #post-page.is-fullscreen .post-toolbar-row,
@@ -3599,9 +3615,11 @@ window.__siteDataReady.then(function () {
   const fsTimerCode     = fsTimer.querySelector('.fs-timer-code');
 
   /* ── 文章级功能开关 ──
-     每篇文章的 disable 字段由 sync_issues.py 从 frontmatter 的 disable:
-     （或 issue 里的 <!-- disable: ... -->）生成，默认全部启用。 */
+     每篇文章的 disable（隐藏）/ disabled（淡化并禁用）字段由 sync_issues.py 从
+     frontmatter 或 issue 标记生成，默认全部启用。
+     featOff[key] 表示「不可用」（隐藏或淡化），所有 JS 守卫统一用它判断。 */
   const FEATURE_KEYS = ['chapters', 'timer', 'search', 'comments', 'copy', 'fullscreen'];
+  const FEATURE_ACTION_KEYS = ['fullscreen', 'copy', 'comments', 'search'];
   const FEATURE_ALIASES = {
     chapter: 'chapters', toc: 'chapters',
     '章节': 'chapters', '目录': 'chapters', '章节指示器': 'chapters',
@@ -3613,6 +3631,7 @@ window.__siteDataReady.then(function () {
     fs: 'fullscreen', '全屏': 'fullscreen', '全屏模式': 'fullscreen'
   };
   const FEATURE_ALL = ['all', '*', '全部', '所有', 'true', 'yes', 'on', '1'];
+  const FEATURE_ICON_BTNS = { fullscreen: btnFullscreen, copy: btnCopy, comments: btnComments, search: btnSearchPost };
   let featOff = {};
 
   function parsePostDisable(value) {
@@ -3634,14 +3653,37 @@ window.__siteDataReady.then(function () {
 
   function applyPostFeatures(meta) {
     const off = parsePostDisable(meta && meta.disable);
+    const dim = parsePostDisable(meta && meta.disabled);
+    const hiddenMap = {};
     featOff = {};
     FEATURE_KEYS.forEach(function (key) {
-      const isOff = !!(off.all || off[key]);
-      featOff[key] = isOff;
-      postPage.classList.toggle('is-feat-off-' + key, isOff);
+      let hidden = !!(off.all || off[key]);
+      let dimmed = !!(dim.all || dim[key]);
+      /* 计时器没有淡化态：disabled 也按隐藏处理并停止计时。
+         章节指示器的 disabled 只隐藏外观，仍然可以点击打开目录。 */
+      if (key === 'timer') {
+        if (dimmed) hidden = true;
+        dimmed = false;
+      }
+      if (hidden) dimmed = false; // 同时出现在两个字段里时以隐藏为准
+      hiddenMap[key] = hidden;
+      /* featOff 是「不可用」：章节指示器在淡化时只隐藏样式，不算不可用 */
+      featOff[key] = key === 'chapters' ? hidden : (hidden || dimmed);
+      postPage.classList.toggle('is-feat-off-' + key, hidden);
+      postPage.classList.toggle('is-feat-dim-' + key, dimmed);
+      const btn = FEATURE_ICON_BTNS[key];
+      if (btn) btn.disabled = dimmed; // 真正禁用点击/键盘激活
     });
-    const noActions = featOff.copy && featOff.comments && featOff.search && featOff.fullscreen;
-    postPage.classList.toggle('is-toolbar-empty', featOff.chapters && noActions);
+    /* 有图标被隐藏后，章节指示器不再受 50% 上限约束（右侧保留 2rem）。
+       只是淡化的话图标仍占位置，不解除限制。 */
+    const anyHiddenAction = FEATURE_ACTION_KEYS.some(function (key) { return hiddenMap[key]; });
+    postPage.classList.toggle('is-chapters-wide', anyHiddenAction);
+    /* 计时器移除后，全屏章节指示器不再为它预留宽度 */
+    if (featOff.timer) fsChap.style.setProperty('--fs-timer-w', '0px');
+    else fsChap.style.removeProperty('--fs-timer-w');
+    /* 只有真正隐藏才算「没有入口」；淡化中的图标仍然要显示 */
+    const noActions = hiddenMap.copy && hiddenMap.comments && hiddenMap.search && hiddenMap.fullscreen;
+    postPage.classList.toggle('is-toolbar-empty', hiddenMap.chapters && noActions);
     if (featOff.fullscreen && isFullscreen) setFullscreen(false);
   }
 
@@ -4367,7 +4409,16 @@ window.__siteDataReady.then(function () {
         ? row.clientWidth - parseFloat(rs.paddingLeft || 0) - parseFloat(rs.paddingRight || 0)
         : 0;
       if (rowInner > 0) { // 工具栏隐藏时（如全屏）不测
-        chapWrap.classList.toggle('is-split', chap1.scrollWidth > rowInner / 4 + 1);
+        /* 默认上限是工具栏一半；有图标被隐藏/淡化时上限变成
+           「整行 − 图标 − 间隙 − 右侧 2rem」，阈值同样取上限的一半 */
+        let cap = rowInner / 2;
+        if (postPage.classList.contains('is-chapters-wide')) {
+          const actions = postToolbarRow.querySelector('.post-toolbar-actions');
+          const actsW = actions ? actions.getBoundingClientRect().width : 0;
+          const gap = actsW > 0 ? (parseFloat(rs.columnGap) || 0) : 0;
+          cap = Math.max(rowInner - actsW - gap - 32, 0); // 32px = 2rem
+        }
+        chapWrap.classList.toggle('is-split', chap1.scrollWidth > cap / 2 + 1);
       }
     } else {
       chapWrap.classList.remove('is-split');

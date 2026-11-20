@@ -21,6 +21,7 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
     <!-- pin: true -->
     <!-- tags: 记录, 随笔 -->
     <!-- disable: copy, comments -->
+    <!-- disabled: search -->
 
 没有 excerpt 标记时，自动取正文第一段（去掉 Markdown、截断到 120 字）。
 标签（labels）会变成 tags；pin / pinned 标签等价于 pin: true。
@@ -71,6 +72,17 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
   （章节、计数器、搜索、评论、复制、全屏）。不想用 frontmatter 时同样可以写成：
 
     <!-- disable: copy, comments -->
+
+- disable 是「隐藏」，disabled 是「淡化并禁用点击」：
+
+    ---
+    disable: [comments]      # 评论按钮直接消失
+    disabled: [copy, search] # 复制/搜索按钮变淡，点了没反应
+    ---
+
+  两个字段都支持 all 和中文别名。chapters 的 disabled 只隐藏指示器外观，
+  仍然可以点击打开目录；timer 的 disabled 会直接移除计时器并停止计时。
+  同一项同时出现在两个字段里时，按 disable（隐藏）处理。
 
 用法
 ----
@@ -338,7 +350,7 @@ def render_posts(posts, indent):
     return ",\n".join(chunks) + "\n"
 
 
-POST_KEY_ORDER = ("slug", "title", "date", "tags", "excerpt", "disable", "src", "pin")
+POST_KEY_ORDER = ("slug", "title", "date", "tags", "excerpt", "disable", "disabled", "src", "pin")
 
 
 def normalize_post(post):
@@ -407,7 +419,7 @@ def marker(body, name):
 
 
 META_MARKER_RE = re.compile(
-    r"[ \t]*<!--\s*(?:slug|excerpt|date|pin|tags|disable)\s*:[\s\S]*?-->[ \t]*(?:\r?\n)?",
+    r"[ \t]*<!--\s*(?:slug|excerpt|date|pin|tags|disabled?)\s*:[\s\S]*?-->[ \t]*(?:\r?\n)?",
     re.IGNORECASE,
 )
 
@@ -536,8 +548,8 @@ DISABLE_ALIASES = {
 DISABLE_ALL = {"all", "*", "全部", "所有", "true", "yes", "on", "1"}
 
 
-def parse_disable(value):
-    """把 disable 字段规整成功能名列表；包含「全部」时直接返回 ["all"]。"""
+def parse_disable(value, field="disable"):
+    """把 disable / disabled 字段规整成功能名列表；包含「全部」时返回 ["all"]。"""
     if value is None:
         return []
     if isinstance(value, (list, tuple, set)):
@@ -562,7 +574,7 @@ def parse_disable(value):
             names.append(name)
     if unknown:
         log(
-            f"  忽略无法识别的 disable 项：{', '.join(unknown)}"
+            f"  忽略无法识别的 {field} 项：{', '.join(unknown)}"
             f"（可用：{', '.join(DISABLE_FEATURES)} 或 all）"
         )
     return names
@@ -701,6 +713,7 @@ def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, e
     excerpt = re.sub(r"\s+", " ", excerpt).strip()
 
     disable = parse_disable(front.get("disable"))
+    disabled = parse_disable(front.get("disabled"), "disabled")
 
     meta = {
         "slug": slug,
@@ -712,6 +725,8 @@ def article_to_post(src_path, src_rel, state, data_dir, posts_dir, used_slugs, e
     }
     if disable:
         meta["disable"] = disable
+    if disabled:
+        meta["disabled"] = disabled
     if pin:
         meta["pin"] = True
     return meta, md_text, rel, raw, hidden
@@ -762,6 +777,7 @@ def issue_to_post(issue, args, state, data_dir, posts_dir):
     excerpt = re.sub(r"\s+", " ", excerpt).strip()
 
     disable = parse_disable(marker(body, "disable"))
+    disabled = parse_disable(marker(body, "disabled"), "disabled")
 
     rel = os.path.relpath(posts_dir / f"{slug}.md", data_dir).replace(os.sep, "/")
     src = rel if rel.startswith(".") else "./" + rel
@@ -776,6 +792,8 @@ def issue_to_post(issue, args, state, data_dir, posts_dir):
     }
     if disable:
         meta["disable"] = disable
+    if disabled:
+        meta["disabled"] = disabled
     if pin:
         meta["pin"] = True
     return meta, md_text, rel
