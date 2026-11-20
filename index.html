@@ -645,14 +645,17 @@ a{text-decoration:none}
 .post-content pre{background:var(--surface);border:var(--hairline) solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem;overflow-x:auto;margin:0 0 1.2rem}
 .post-content pre code{background:none;border:none;padding:0;border-radius:0}
 
-/* 代码块折叠：高度超过正文容器的 <pre> 才会被包进 .code-block，短代码块保持原样 */
-.post-content .code-block{
+/* 代码块折叠：高度超过正文容器的 <pre> 才会被包进 .code-block，短代码块保持原样
+   脚注折叠块复用同一套外壳与顶栏样式 */
+.post-content .code-block,
+.post-content .footnotes{
   position:relative;
   margin:0 0 1.2rem;border:var(--hairline) solid var(--border);border-radius:var(--radius);
   background:var(--surface);overflow:hidden;
   transition:border-color .18s,background-color .18s;
 }
-.post-content .code-block.is-collapsed{cursor:pointer}
+.post-content .code-block.is-collapsed,
+.post-content .footnotes.is-collapsed{cursor:pointer}
 .post-content .code-block.is-static{cursor:pointer}
 .post-content .code-block pre{margin:0;border:none;border-radius:0;background:none}
 /* 头栏与站内控件同一套高度与间距 */
@@ -676,7 +679,8 @@ a{text-decoration:none}
   stroke-linejoin:round;stroke-linecap:round;
   transition:transform .22s var(--ease-out);
 }
-.post-content .code-block:not(.is-collapsed) .code-chevron{transform:rotate(90deg)}
+.post-content .code-block:not(.is-collapsed) .code-chevron,
+.post-content .footnotes:not(.is-collapsed) .code-chevron{transform:rotate(90deg)}
 .post-content .code-meta{display:flex;align-items:center;gap:.38rem;letter-spacing:.03em;white-space:nowrap}
 .post-content .code-lines{color:var(--text-3)}
 .post-content .code-sep{opacity:.5}
@@ -831,9 +835,13 @@ a{text-decoration:none}
 .post-content .katex{font-size:1.06em;color:var(--text)}
 .post-content .katex-display{margin:1.4rem 0;overflow-x:auto;overflow-y:hidden;padding:.2rem 0}
 
-/* 脚注 */
+/* 脚注：默认折叠，外壳与顶栏复用长代码块样式，但不绑定复制 */
 .post-content sup a[data-footnote-ref]{font-family:var(--font-mono);font-size:.72em;padding:0 .15em}
-.post-content .footnotes{margin-top:2.6rem;padding-top:1rem;border-top:var(--hairline) solid var(--border);font-size:.82rem;color:var(--text-3)}
+.post-content .footnotes{margin:2.6rem 0 0;font-size:.82rem;color:var(--text-3)}
+.post-content .footnotes.is-collapsed .fn-body{display:none}
+.post-content .footnotes.is-collapsed .code-head{border-bottom:none}
+.post-content .footnotes .fn-body{padding:.7rem var(--panel-gap) .85rem}
+.post-content .footnotes .code-lang{pointer-events:none}
 .post-content .footnotes ol{padding-left:1.2rem;margin-bottom:0}
 .post-content .footnotes li{margin-bottom:.4rem}
 .post-content .footnotes p{display:inline;margin:0}
@@ -1948,6 +1956,92 @@ window.__siteDataReady.then(function hydrateViews() {
     }
   }
 
+  /* 渲染后处理：脚注默认折叠。
+     外壳与顶栏复用长代码块（.code-block / .code-head），但不绑定复制：
+     点顶栏展开或收起，点正文区域收起。marked-footnote 输出的 id 全部保留，
+     引用/回链锚点照常可用 */
+  function setFootnoteCollapsed(block, collapsed) {
+    block.classList.toggle('is-collapsed', collapsed);
+    var toggle = block.querySelector('.code-toggle');
+    if (!toggle) return;
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggle.setAttribute('aria-label', collapsed ? '展开脚注' : '收起脚注');
+  }
+
+  function collapseFootnotes(root) {
+    var sections = root.querySelectorAll('section.footnotes');
+    for (var i = 0; i < sections.length; i++) {
+      var section = sections[i];
+      var count = section.querySelectorAll('ol > li').length;
+
+      var block = document.createElement('div');
+      block.className = 'footnotes';
+      if (section.id) block.id = section.id;
+
+      var head = document.createElement('div');
+      head.className = 'code-head';
+
+      /* 图标只是视觉提示，点击整条顶栏都能切换；按钮本身保留键盘可达性 */
+      var toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'code-toggle';
+      toggle.innerHTML = CODE_TRIANGLE;
+
+      var meta = document.createElement('span');
+      meta.className = 'code-meta';
+
+      var lines = document.createElement('span');
+      lines.className = 'code-lines';
+      lines.textContent = count + ' Items';
+
+      var sep = document.createElement('span');
+      sep.className = 'code-sep';
+      sep.textContent = '-';
+
+      var label = document.createElement('span');
+      label.className = 'code-lang';
+      label.textContent = '脚注';
+
+      meta.appendChild(lines);
+      meta.appendChild(sep);
+      meta.appendChild(label);
+      head.appendChild(toggle);
+      head.appendChild(meta);
+
+      var body = document.createElement('div');
+      body.className = 'fn-body';
+      while (section.firstChild) body.appendChild(section.firstChild);
+
+      block.appendChild(head);
+      block.appendChild(body);
+      section.parentNode.replaceChild(block, section);
+
+      block.addEventListener('click', function (e) {
+        var t = e.target;
+        var inHead = !!(t && t.closest && t.closest('.code-head'));
+        /* 正文里的链接、嵌套代码块、表格等交互区域不触发折叠 */
+        if (!inHead && t && t.closest &&
+            t.closest('a, button, summary, .code-block, .table-wrap, input, textarea, video, audio')) return;
+        if (hasCodeSelection()) return;
+        setFootnoteCollapsed(block, !block.classList.contains('is-collapsed'));
+        if (window.refreshPostLayout) window.refreshPostLayout();
+      });
+
+      setFootnoteCollapsed(block, true);
+    }
+  }
+
+  /* 供锚点跳转/搜索使用：先展开目标所在的折叠块（脚注或作者手写 <details>） */
+  window.revealFoldTarget = function (el) {
+    if (!el || !el.closest) return;
+    var changed = false;
+    var details = el.closest('details:not([open])');
+    if (details) { details.open = true; changed = true; }
+    var fn = el.closest('.footnotes.is-collapsed');
+    if (fn) { setFootnoteCollapsed(fn, false); changed = true; }
+    if (changed && window.refreshPostLayout) window.refreshPostLayout();
+  };
+
   /* 渲染后处理：把 *[HTML]: ... 里的缩写落到正文文本节点。
      跳过代码/链接/已有 abbr/公式，避免二次包裹 */
   function applyAbbreviations(root) {
@@ -2148,6 +2242,7 @@ window.__siteDataReady.then(function hydrateViews() {
   window.decoratePostContent = function (root) {
     if (!root) return;
     wrapContentTables(root);
+    collapseFootnotes(root);
     applyAbbreviations(root);
     setupCodeBlocks(root);
   };
@@ -3316,6 +3411,8 @@ window.__siteDataReady.then(function () {
     hits.forEach(function (m, j) { m.classList.toggle('is-current', j === hitIdx); });
     srItems.forEach(function (it, j) { it.classList.toggle('is-active', j === hitIdx); });
     const el = hits[hitIdx];
+    /* 命中词在折叠块（脚注等）里：先展开，否则定位到的是折叠后的旧布局 */
+    if (window.revealFoldTarget) window.revealFoldTarget(el);
     const top = el.getBoundingClientRect().top - postContent.getBoundingClientRect().top + postContent.scrollTop - postContent.clientHeight / 2;
     postContent.scrollTo({ top: top, behavior: 'smooth' });
     const it = srItems[hitIdx];
@@ -3641,6 +3738,8 @@ window.__siteDataReady.then(function () {
     /* 无条件拦下默认跳转：目标不存在时若放行，浏览器会改 hash，路由误判为关闭文章 */
     e.preventDefault();
     if (!target || !postContent.contains(target)) return;
+    /* 目标藏在折叠块（脚注等）里：先展开，再按展开后的布局定位 */
+    if (window.revealFoldTarget) window.revealFoldTarget(target);
     const delta = target.getBoundingClientRect().top - postContent.getBoundingClientRect().top;
     postContent.scrollTop += delta - 20;
   });
