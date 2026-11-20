@@ -59,9 +59,9 @@
   --syn-type:  oklch(0.50 0.08 200);
 
   /* type */
-  --font-display: "Times New Roman", serif;
-  --font-body:    "Times New Roman", serif;
-  --font-mono:    "Times New Roman", serif;
+  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-body:    ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono:    "SF Mono", "Consolas", "Roboto Mono", monospace;
   /* slogan 保留原来的展示字体，不参与全局字体统一 */
   --font-slogan:  "Cormorant Garamond", serif;
 
@@ -69,7 +69,22 @@
   --page-w: 720px;
   --pad-x: clamp(1.25rem, 5vw, 2rem);
   --radius: 12px;
+  --radius-xs: 2px;
+  --radius-lg: 16px;
   --hairline: 0.5px;
+  /* gaps */
+  --panel-gap: 12px;
+  --panel-gap-tight: 10px;
+  /* typography */
+  --max-width-ch: 65ch;
+  /* navigation */
+  --nav-icon-size: 30px;
+  /* footer */
+  --footer-padding: 5rem;
+  /* transition */
+  --transition-fast: .18s;
+  --transition-medium: .25s;
+  --transition-spring: .35s;
   --ease-out: cubic-bezier(.22,1,.36,1);
   --ease-spring: cubic-bezier(.32,.72,0,1);
   --header-h: 56px;
@@ -77,7 +92,6 @@
   --control-h: 44px;
   /* 全站块内文字统一行高（TOC / 文内搜索列表项单独保留原有紧凑值） */
   --line-height: 1.8;
-  --panel-gap: 12px;
   --radius-sm: 8px;
   --radius-md: 10px;
   --z-menu: 20;
@@ -150,7 +164,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 .title-bar.is-scrolled{border-bottom-color:var(--border)}
 .title-bar-inner{display:flex;align-items:center;gap:.7rem;height:var(--header-h)}
-.site-icon{width:30px;height:30px;color:var(--accent);flex-shrink:0}
+.site-icon{width:var(--nav-icon-size);height:var(--nav-icon-size);color:var(--accent);flex-shrink:0}
 .site-title{
   font-family:var(--font-display);font-size:1.3rem;font-weight:500;
   letter-spacing:.05em;color:var(--title);flex:1;min-width:0;
@@ -161,7 +175,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   display:flex;align-items:center;justify-content:center;
   width:40px;height:40px;border-radius:var(--radius-sm);flex-shrink:0;
   color:var(--text-2);
-  transition:color .18s,background-color .18s;
+  transition:color var(--transition-fast),background-color var(--transition-fast);
 }
 .icon-btn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
@@ -177,10 +191,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .search-dialog{
   width:min(420px,calc(100vw - 2.5rem));
   max-height:80vh;
-  display:flex;flex-direction:column;gap:10px;
+  display:flex;flex-direction:column;gap:var(--panel-gap-tight);
   background:var(--surface);
   border:var(--hairline) solid var(--border);
-  border-radius:16px;
+  border-radius:var(--radius-lg);
   box-shadow:0 30px 80px -20px var(--shadow-drop);
   padding:.9rem;
   transform:translateY(12px) scale(.98);
@@ -230,15 +244,15 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   transition:transform .3s cubic-bezier(.77,0,.175,1),width .3s cubic-bezier(.77,0,.175,1);
 }
 .sm-tab-btn{
-  flex:1;height:36px;position:relative;z-index:1;border-radius:7px;
+  flex:1;height:36px;position:relative;z-index:1;border-radius:var(--radius-xs);
   display:flex;align-items:center;justify-content:center;
-  color:var(--text-3);transition:color .25s;
+  color:var(--text-3);transition:color var(--transition-medium);
 }
 .sm-tab-btn.is-active{color:var(--text)}
 .sm-tab-btn svg{display:block}
 /* 收起后的点条 */
 .sm-dots-row,.sr-dots-row{display:flex;gap:4px;width:100%;height:10px;align-items:center;padding:0 2px}
-.sm-dot-bar,.sr-dot-bar{flex:1;height:2px;border-radius:2px;background:var(--border);cursor:pointer;transition:background-color .3s}
+.sm-dot-bar,.sr-dot-bar{flex:1;height:2px;border-radius:var(--radius-xs);background:var(--border);cursor:pointer;transition:background-color .3s}
 .sm-dot-bar.is-active,.sr-dot-bar.is-active{background:var(--text-2)}
 /* 结果 */
 .sm-results-wrap{
@@ -292,7 +306,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 .slogan-text em{font-style:italic;color:var(--accent)}
 
-.feed{padding-bottom:5rem}
+.feed{padding-bottom:var(--footer-padding)}
 .feed-head{
   display:flex;align-items:baseline;justify-content:space-between;
   margin-bottom:1.4rem;padding-bottom:.6rem;
@@ -431,7 +445,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .theme-seg{
   flex:1;position:relative;z-index:1;height:var(--control-h);
   display:flex;align-items:center;justify-content:center;
-  color:var(--text-3);transition:color .25s;border-radius:var(--radius-sm);
+  color:var(--text-3);transition:color var(--transition-medium);border-radius:var(--radius-sm);
 }
 .theme-seg svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .theme-seg.is-active{color:var(--text)}
@@ -439,6 +453,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* ── 最近浏览 ── */
 #footprint-modal{
   position:fixed;inset:0;z-index:var(--z-search);
+  border-radius:var(--radius-lg);
   display:flex;align-items:center;justify-content:center;
   padding:1.25rem var(--pad-x);
   background:var(--scrim);
@@ -452,7 +467,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   display:flex;flex-direction:column;gap:10px;
   background:var(--surface);
   border:var(--hairline) solid var(--border);
-  border-radius:16px;
+  border-radius:var(--radius-lg);
   box-shadow:0 30px 80px -20px var(--shadow-drop);
   padding:.9rem;
   transform:translateY(12px) scale(.98);
@@ -777,7 +792,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
   padding:2.4rem var(--pad-x) 6rem;
 }
-.post-content-inner{max-width:65ch;margin:0 auto}
+.post-content-inner{max-width:calc(var(--max-width-ch));margin:0 auto}
 
 /* markdown 排版 */
 .post-content h1,.post-content h2,.post-content h3,.post-content h4{
@@ -913,7 +928,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content del{color:var(--text-3);text-decoration-color:color-mix(in srgb,var(--accent) 53%,transparent)}
 
 /* markdown 内联 HTML：标记 / 键帽 / 折叠块 / 上下标，接入既有纸墨 token */
-.post-content mark{background:var(--mark-bg);color:var(--text);border-radius:2px;padding:0 .1em;
+.post-content mark{background:var(--mark-bg);color:var(--text);border-radius:var(--radius-xs);padding:0 .1em;
   -webkit-box-decoration-break:clone;box-decoration-break:clone}
 .post-content kbd{font-family:var(--font-mono);font-size:.78em;color:var(--text);
   background:var(--surface);border:var(--hairline) solid var(--border);border-radius:5px;
@@ -1002,7 +1017,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* 搜索高亮 */
 .post-content mark.s-hit{
   background:var(--mark-bg);color:var(--text);
-  border-radius:2px;padding:0 .05em;
+  border-radius:var(--radius-xs);padding:0 .05em;
 }
 .post-content mark.s-hit.is-current{background:var(--accent);color:var(--bg)}
 
@@ -1052,7 +1067,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 .panel-title{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;color:var(--text-3)}
 .panel-head-actions{display:flex;align-items:center;gap:.2rem;flex-shrink:0}
-.panel-close{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-3);transition:color .18s,background-color .18s}
+.panel-close{width:var(--nav-icon-size);height:var(--nav-icon-size);border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;color:var(--text-3);transition:color var(--transition-fast),background-color var(--transition-fast)}
 .panel-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .panel-body{flex:1;overflow-y:auto;overscroll-behavior:contain}
 
@@ -1100,7 +1115,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .search-meta.has-results{border-bottom:none}
 .search-count{font-family:var(--font-mono);font-size:.7rem;color:var(--text-3);letter-spacing:.05em;min-height:1em}
 .search-nav{display:flex;gap:.15rem}
-.search-nav .icon-btn{width:30px;height:30px}
+.search-nav .icon-btn{width:var(--nav-icon-size);height:var(--nav-icon-size)}
 .search-nav .icon-btn svg{width:14px;height:14px}
 .search-nav .icon-btn:disabled{opacity:.3;pointer-events:none}
 /* 文内搜索结果列表 */
@@ -1247,7 +1262,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   white-space:pre-wrap;word-break:break-all;
 }
 .nav-confirm-url code{font:inherit;color:inherit}
-.nav-confirm-actions{display:flex;gap:10px}
+.nav-confirm-actions{display:flex;gap:var(--panel-gap-tight)}
 .nav-confirm-actions button{
   flex:1;height:40px;border-radius:var(--radius-sm);
   font-size:.85rem;letter-spacing:.03em;
@@ -1305,10 +1320,11 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .sr-filter-btn:active:not(.is-active){
   color:var(--accent);
   border-color:var(--accent);
+  transform:scale(.97);
 }
 .card:active{
   border-color:var(--accent);
-  transform:translateY(-2px);
+  transform:translateY(-2px) scale(.97);
 }
 .sm-result:active,.fp-item:active{
   border-color:var(--accent);
@@ -1445,7 +1461,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
       <div class="sm-tabs" id="sm-tabs" role="tablist">
         <div class="sm-tab-slider" id="sm-tab-slider" aria-hidden="true"></div>
         <button class="sm-tab-btn is-active" data-mode="title" role="tab" aria-selected="true" aria-label="按标题搜索" title="按标题搜索">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="Times New Roman, serif" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-mono)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
         </button>
         <button class="sm-tab-btn" data-mode="date" role="tab" aria-selected="false" aria-label="按日期搜索" title="按日期搜索">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.1"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><rect x="4" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/><rect x="8.9" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/></svg>
@@ -1661,7 +1677,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
         <div class="sr-filter-tabs" id="sr-filter-tabs" role="tablist" aria-label="搜索结果过滤">
           <div class="sr-filter-slider" id="sr-filter-slider" aria-hidden="true"></div>
           <button class="sr-filter-btn is-active" data-filter="body" role="tab" aria-selected="true" aria-label="正文" title="正文">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="Times New Roman, serif" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-mono)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
           </button>
           <button class="sr-filter-btn" data-filter="code" role="tab" aria-selected="false" aria-label="代码" title="代码">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="7 7 2 12 7 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 7 22 12 17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="5" x2="10" y2="19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
