@@ -507,5 +507,5 @@ $$
 
 文档结束。
 ```
-
-补充说明：原文 2.4 节中的“行内链接”“带标题的链接”“引用式链接”“自动链接”“邮箱链接”在纯文本中丢失了 URL，我分别补为 `https://example.com`、`https://example.com "Example Title"`、引用定义 `[ref1]: https://example.com "Reference Link"`、`<https://example.com>`、`<mailto:someone@example.com>`，这些是测试占位值，可按需替换。目录中的锚点按常见 GitHub 风格标题锚点生成，若目标渲染器锚点规则不同，可相应调整。
+如果下方还有内容，则可能是脚注等引用内容，全文搜索或点击跳转时会自动展开
+```

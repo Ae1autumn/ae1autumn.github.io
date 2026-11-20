@@ -3031,6 +3031,7 @@ window.__siteDataReady.then(function () {
   let dotTimer = null;
   let errorTimer = null;
   let tabsTransitionTimer = null;
+  let tabsTargetH = null;   /* Tab 区高度过渡期间的目标高度（offsetHeight 此时读到的是中间值） */
   let resultsHeightTimer = null;
   let searchScrollLocked = false;
   let lastQuery = '';
@@ -3067,7 +3068,10 @@ window.__siteDataReady.then(function () {
       slider.style.transition = 'none';
       slider.style.width = w + 'px';
       slider.style.transform = 'translateX(' + x + 'px)';
-      requestAnimationFrame(function () { slider.style.transition = ''; });
+      /* 立即落位并同步恢复过渡：同一次任务里后续的带动画更新
+         （比如从点条展开后切到点中的 Tab）才能正常过渡 */
+      void slider.offsetWidth;
+      slider.style.transition = '';
     } else {
       slider.style.width = w + 'px';
       slider.style.transform = 'translateX(' + x + 'px)';
@@ -3081,14 +3085,19 @@ window.__siteDataReady.then(function () {
     if (lastQuery) runSearch(lastQuery);
   }
 
+  /* 切换搜索模式。先展开再设 Tab：
+     从点条态展开时，结果区要按“展开后”的 Tab 高度算目标高度，
+     否则会先按点条高度撑大，等 Tab 展开完再缩回去。 */
+  function activateTab(idx) {
+    expandTabs();
+    setTab(idx);
+    resetDotTimer();
+  }
+
   tabBtns.forEach(function (b, i) {
     // 阻止 input 失焦（blur 会触发确认搜索）
     b.addEventListener('mousedown', function (e) { e.preventDefault(); });
-    b.addEventListener('click', function () {
-      setTab(i);
-      expandTabs();
-      resetDotTimer();
-    });
+    b.addEventListener('click', function () { activateTab(i); });
   });
 
   /* ── 点条模式（收起为三段线） ── */
@@ -3100,17 +3109,26 @@ window.__siteDataReady.then(function () {
   }
 
   function expandTabs() {
+    /* 已经是展开态：直接返回。重建 DOM 会换掉滑块元素，
+       点击 Tab 时的位移动画就会丢失 */
+    if (!dotMode && document.getElementById('sm-tabs')) return;
     clearTimeout(tabsTransitionTimer);
+    tabsTransitionTimer = null;
     dotMode = false;
     buildTabs();
     const tabsEl = document.getElementById('sm-tabs');
-    const fullH = tabsEl.scrollHeight + 8;
-    requestAnimationFrame(function () {
-      if (!isOpen || dotMode) return;
-      tabsWrap.style.height = fullH + 'px';
-      updateSlider(modeIdx, true);
-      tabsTransitionTimer = setTimeout(function () { tabsWrap.style.height = ''; }, 380);
-    });
+    const fullH = tabsEl.getBoundingClientRect().height;
+    updateSlider(modeIdx, true);
+    /* 同步设为目标高度：点条态下当前高度是 10px，会自然过渡过去。
+       同时记下目标高度，供结果区在这段过渡里计算可用高度 */
+    tabsTargetH = fullH;
+    tabsWrap.style.height = fullH + 'px';
+    tabsTransitionTimer = setTimeout(function () {
+      tabsTransitionTimer = null;
+      tabsTargetH = null;
+      tabsWrap.style.height = '';
+    }, 380);
+    retargetResultsHeight();
   }
 
   function collapseToDots() {
@@ -3118,8 +3136,11 @@ window.__siteDataReady.then(function () {
     clearTimeout(dotTimer);
     clearTimeout(tabsTransitionTimer);
     dotMode = true;
+    /* 收起后固定为点条高度；结果区在这段过渡里按它算可用高度 */
+    tabsTargetH = 10;
     tabsWrap.style.height = tabsWrap.scrollHeight + 'px';
     tabsWrap.getBoundingClientRect();
+    retargetResultsHeight();
     requestAnimationFrame(function () {
       if (!dotMode || !isOpen) return;
       tabsWrap.style.height = '10px';
@@ -3136,15 +3157,12 @@ window.__siteDataReady.then(function () {
           bar.title = '切换到' + ['标题', '日期', '标签'][i] + '搜索';
           bar.setAttribute('aria-pressed', String(i === modeIdx));
           bar.addEventListener('mousedown', function (e) { e.preventDefault(); });
-          bar.addEventListener('click', function () {
-            setTab(i);
-            expandTabs();
-            resetDotTimer();
-          });
+          bar.addEventListener('click', function () { activateTab(i); });
           row.appendChild(bar);
         }
         tabsWrap.appendChild(row);
         tabsWrap.style.height = '10px';
+        tabsTargetH = null;
       }, 360);
     });
   }
@@ -3299,7 +3317,9 @@ window.__siteDataReady.then(function () {
     const dborder = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
     const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
     const gap = parseFloat(cs.rowGap || cs.gap) || 0;
-    const used = pad + dborder + box.offsetHeight + tabsWrap.offsetHeight + gap * 2;
+    /* Tab 区正在做高度过渡时用目标高度，否则读到的中间值会让结果区算错上限 */
+    const tabsH = tabsTargetH != null ? tabsTargetH : tabsWrap.offsetHeight;
+    const used = pad + dborder + box.offsetHeight + tabsH + gap * 2;
     return Math.max(0, Math.min(resultsWrap.scrollHeight, maxH - used));
   }
 
@@ -3326,6 +3346,15 @@ window.__siteDataReady.then(function () {
       resultsHeightTimer = null;
       finishResultsHeight(done);
     }, 360);
+  }
+
+  /* Tab 区高度变化会改变结果区的可用高度：若结果区正在做高度过渡，
+     就按新的 Tab 高度重新计算目标，让两段过渡一起走，
+     避免结果区先被撑大、等过渡结束清掉固定高度时再缩回去 */
+  function retargetResultsHeight() {
+    if (!resultsWrap.style.height) return; /* 没有固定高度时由 flex 自适应 */
+    if (!resultsEl.children.length) return; /* 正在收起到隐藏，交给原来的回调 */
+    animateResultsHeight(resultsWrap.getBoundingClientRect().height, getResultsTargetHeight());
   }
 
   function renderResults(list) {
@@ -3379,6 +3408,7 @@ window.__siteDataReady.then(function () {
     clearTimeout(dotTimer);
     clearTimeout(tabsTransitionTimer);
     dotMode = false;
+    tabsTargetH = null;
     tabsWrap.style.height = '';
     if (!document.getElementById('sm-tabs')) buildTabs();
     updateTabState(0);
@@ -3407,6 +3437,7 @@ window.__siteDataReady.then(function () {
     clearTimeout(errorTimer);
     clearTimeout(tabsTransitionTimer);
     clearTimeout(resultsHeightTimer);
+    tabsTargetH = null;
     if (searchScrollLocked) {
       window.unlockBackgroundScroll();
       searchScrollLocked = false;
