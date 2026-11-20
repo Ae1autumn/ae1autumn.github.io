@@ -3620,6 +3620,8 @@ window.__siteDataReady.then(function () {
         if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         const p = node.parentNode;
         if (!p || /^(SCRIPT|STYLE|MARK)$/.test(p.nodeName)) return NodeFilter.FILTER_REJECT;
+        /* KaTeX 的 MathML 副本只是无障碍/排版用的隐藏结构，里面的 annotation 是原始 TeX 源码 */
+        if (p.closest && p.closest('.katex-mathml')) return NodeFilter.FILTER_REJECT;
         /* 代码块 / 脚注的顶栏只是界面标签，不参与搜索 */
         if (p.closest && p.closest('.code-head')) return NodeFilter.FILTER_REJECT;
         return node.nodeValue.toLowerCase().indexOf(needle) !== -1
