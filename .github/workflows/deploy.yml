@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   issues: read
   pages: write
   id-token: write
@@ -32,29 +32,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      # 普通 push（比如新增/修改 articles/）时，只处理本地文章，不访问 GitHub
-      - name: Sync posts from articles
-        if: github.event_name == 'push'
-        run: python sync_issues.py --no-issues
-
-      # issue 变化时，把 issues 同步成 Markdown + data.jsonc
-      - name: Sync posts from issues
-        if: github.event_name != 'push'
+      # posts/ 不进仓库，每次构建都全量重建（issues + articles）。
+      # --full 忽略 ETag 缓存，否则全新 checkout 里拿不到 issue 正文。
+      # 生成结果只进入 Pages 产物，不回写仓库。
+      - name: Build posts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python sync_issues.py --repo ${{ github.repository }} --prune-unmanaged
-
-      - name: Commit generated posts
-        if: github.event_name != 'push'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.jsonc posts .issues-sync.json
-          if ! git diff --cached --quiet; then
-            git commit -m "sync posts from issues/articles"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+        run: python sync_issues.py --repo ${{ github.repository }} --full --prune-unmanaged
 
       # 只把站点需要的文件放进产物，避免把脚本和状态文件暴露到线上
       - name: Prepare site
