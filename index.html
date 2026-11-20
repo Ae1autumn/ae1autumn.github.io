@@ -237,16 +237,18 @@ a{text-decoration:none}
 .sm-dot-bar,.sr-dot-bar{flex:1;height:2px;border-radius:2px;background:var(--border);cursor:pointer;transition:background-color .3s}
 .sm-dot-bar.is-active,.sr-dot-bar.is-active{background:var(--text-2)}
 /* 结果 */
+.sm-results-wrap{
+  flex:0 1 auto;min-height:0;overflow-y:auto;
+  scrollbar-width:none;
+  transition:height .35s var(--ease-out);
+}
+.sm-results-wrap::-webkit-scrollbar{display:none}
+.sm-results-wrap.hidden{display:none}
 .sm-results{
-  flex:1;min-height:0;overflow-y:auto;
   display:flex;flex-direction:column;gap:.5rem;
   border:var(--hairline) solid var(--border);border-radius:var(--radius-md);
   background:var(--bg);padding:.6rem;
-  scrollbar-width:none;
-  transition:opacity .2s;
 }
-.sm-results::-webkit-scrollbar{display:none}
-.sm-results.hidden{display:none}
 .sm-result{
   text-align:left;flex-shrink:0;width:100%;
   border:var(--hairline) solid var(--border);border-radius:var(--radius-md);
@@ -1244,7 +1246,9 @@ a{text-decoration:none}
         </button>
       </div>
     </nav>
-    <div class="sm-results hidden" id="sm-results" role="listbox" aria-label="搜索结果" aria-live="polite"></div>
+    <div class="sm-results-wrap hidden" id="sm-results-wrap">
+      <div class="sm-results" id="sm-results" role="listbox" aria-label="搜索结果" aria-live="polite"></div>
+    </div>
   </div>
 </div>
 
@@ -2442,6 +2446,8 @@ window.__siteDataReady.then(function () {
   const input     = document.getElementById('sm-input');
   const tabsWrap  = document.getElementById('sm-tabs-wrap');
   const resultsEl = document.getElementById('sm-results');
+  const resultsWrap = document.getElementById('sm-results-wrap');
+  const dialog    = document.getElementById('search-dialog');
 
   const POSTS = window.POSTS;
   const esc = window.escapeHTML;
@@ -2455,6 +2461,7 @@ window.__siteDataReady.then(function () {
   let dotTimer = null;
   let errorTimer = null;
   let tabsTransitionTimer = null;
+  let resultsHeightTimer = null;
   let searchScrollLocked = false;
   let lastQuery = '';
 
@@ -2690,10 +2697,82 @@ window.__siteDataReady.then(function () {
     renderResults(list);
   }
 
-  function renderResults(list) {
+  /* ── 结果区高度过渡 ── */
+  function resetSearchResults() {
+    clearTimeout(resultsHeightTimer);
+    resultsHeightTimer = null;
+    resultsWrap.classList.add('hidden');
     resultsEl.innerHTML = '';
-    if (!list.length) { resultsEl.classList.add('hidden'); return; }
-    resultsEl.classList.remove('hidden');
+    resultsWrap.style.transition = '';
+    resultsWrap.style.height = '';
+    resultsWrap.style.overflow = '';
+  }
+
+  function freezeResultsHeight() {
+    if (resultsWrap.classList.contains('hidden')) return 0;
+    const h = resultsWrap.getBoundingClientRect().height;
+    clearTimeout(resultsHeightTimer);
+    resultsHeightTimer = null;
+    resultsWrap.style.transition = 'none';
+    resultsWrap.style.height = h + 'px';
+    resultsWrap.style.overflow = 'hidden';
+    resultsWrap.getBoundingClientRect();
+    resultsWrap.style.transition = '';
+    return h;
+  }
+
+  function getResultsTargetHeight() {
+    const cs = getComputedStyle(dialog);
+    const mh = parseFloat(cs.maxHeight);
+    const maxH = (isFinite(mh) && mh > 100) ? mh : window.innerHeight * 0.8;
+    const dborder = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    const gap = parseFloat(cs.rowGap || cs.gap) || 0;
+    const used = pad + dborder + box.offsetHeight + tabsWrap.offsetHeight + gap * 2;
+    return Math.max(0, Math.min(resultsWrap.scrollHeight, maxH - used));
+  }
+
+  function finishResultsHeight(done) {
+    if (done) done();
+    resultsWrap.style.height = '';
+    resultsWrap.style.overflow = '';
+    resultsWrap.style.transition = '';
+  }
+
+  function animateResultsHeight(fromH, target, done) {
+    clearTimeout(resultsHeightTimer);
+    resultsHeightTimer = null;
+    const from = Math.max(0, fromH);
+    const to = Math.max(0, target);
+    if (Math.abs(to - from) < 0.5) { finishResultsHeight(done); return; }
+    resultsWrap.style.transition = 'none';
+    resultsWrap.style.height = from + 'px';
+    resultsWrap.style.overflow = 'hidden';
+    resultsWrap.getBoundingClientRect();
+    resultsWrap.style.transition = '';
+    resultsWrap.style.height = to + 'px';
+    resultsHeightTimer = setTimeout(function () {
+      resultsHeightTimer = null;
+      finishResultsHeight(done);
+    }, 360);
+  }
+
+  function renderResults(list) {
+    const wasHidden = resultsWrap.classList.contains('hidden');
+    const fromH = wasHidden ? 0 : freezeResultsHeight();
+    resultsEl.innerHTML = '';
+    if (!list.length) {
+      animateResultsHeight(fromH, 0, function () { resultsWrap.classList.add('hidden'); });
+      return;
+    }
+    if (wasHidden) {
+      resultsWrap.classList.remove('hidden');
+      resultsWrap.style.transition = 'none';
+      resultsWrap.style.height = '0px';
+      resultsWrap.style.overflow = 'hidden';
+      resultsWrap.getBoundingClientRect();
+      resultsWrap.style.transition = '';
+    }
     list.forEach(function (c) {
       const b = document.createElement('button');
       const tags = window.postTags(c);
@@ -2716,6 +2795,7 @@ window.__siteDataReady.then(function () {
       });
       resultsEl.appendChild(b);
     });
+    animateResultsHeight(fromH, getResultsTargetHeight());
   }
   function open() {
     if (isOpen) return;
@@ -2731,7 +2811,7 @@ window.__siteDataReady.then(function () {
     tabsWrap.style.height = '';
     if (!document.getElementById('sm-tabs')) buildTabs();
     updateTabState(0);
-    renderResults([]);
+    resetSearchResults();
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
     btn.setAttribute('aria-expanded', 'true');
@@ -2755,6 +2835,7 @@ window.__siteDataReady.then(function () {
     clearTimeout(dotTimer);
     clearTimeout(errorTimer);
     clearTimeout(tabsTransitionTimer);
+    clearTimeout(resultsHeightTimer);
     if (searchScrollLocked) {
       window.unlockBackgroundScroll();
       searchScrollLocked = false;
