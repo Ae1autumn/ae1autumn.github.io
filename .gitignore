@@ -1,7 +1,5 @@
 __pycache__/
 *.pyc
 .site-tmp/
-
-# 构建产物：由 sync_issues.py 生成，CI 里每次重新构建，不进仓库
 /posts/
 /data.jsonc
