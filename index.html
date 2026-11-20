@@ -3111,6 +3111,23 @@ window.__siteDataReady.then(function () {
     const en = (prose.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) || []).length;
     return Math.max(1, Math.ceil(zh / 300 + en / 200));
   }
+  /* 深链 ?h=id：从锚点标题算到文章末尾。
+     直接取渲染后的文本（跳过代码），与全文估算口径保持一致，
+     也天然适配标题去重后的 id 与折叠内容 */
+  function estimateReadMinFrom(startEl) {
+    if (!startEl || !postContent.contains(startEl)) return 0;
+    const parts = [];
+    const walker = document.createTreeWalker(postContent, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const parent = node.parentElement;
+      if (!parent || parent.closest('pre, code, script, style, .katex-mathml')) continue;
+      if (!startEl.contains(node) &&
+          !(startEl.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      parts.push(node.nodeValue);
+    }
+    return estimateReadMin(parts.join(' '));
+  }
   function setTimerError() {
     /* 顶部计时器整个移除；全屏计时器保留位置，显示占位文本 */
     resetCodeReading();
@@ -3809,7 +3826,6 @@ window.__siteDataReady.then(function () {
     postContent.innerHTML = '<div class="post-content-inner">' + marked.parse(rawMarkdown) + '</div>';
     /* 原生表格套滚动容器、缩写定义落到正文（需在 buildHeadings / 渐隐初始化之前） */
     if (window.decoratePostContent) window.decoratePostContent(postContent);
-    postRead.textContent = String(estimateReadMin(rawMarkdown)).padStart(2, '0');
     buildHeadings();
     /* 表格边缘渐隐初始态（内容已插入，此时可测得真实滚动余量） */
     postContent.querySelectorAll('.table-wrap').forEach(updateFade);
@@ -3819,7 +3835,12 @@ window.__siteDataReady.then(function () {
 
     const saved = loadState(slug);
     const deepId = takeHeadingDeepLink();
-    if (deepId && document.getElementById(deepId)) {
+    const deepTarget = deepId ? document.getElementById(deepId) : null;
+    /* 深链 ?h=id：预计时长只算锚点以下的部分；全文链接仍按整篇估算 */
+    postRead.textContent = String(
+      deepTarget ? estimateReadMinFrom(deepTarget) : estimateReadMin(rawMarkdown)
+    ).padStart(2, '0');
+    if (deepTarget) {
       /* 分享链接 ?h=id：优先回到指定标题，忽略上次的滚动位置。
          先立刻定位一次，图片加载完后再校正一次，避免等图期间停在顶部 */
       scrollToHeading(deepId, false);
