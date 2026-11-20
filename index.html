@@ -469,20 +469,24 @@ a{text-decoration:none}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
-/* 长代码块内：整个时间指示器交叉淡出，只留居中的 </> */
+/* 长代码块内：整个计时信息淡出，</> 用章节文本的纵向滚入动画贴在右边缘 */
 .post-timer-live,.fs-timer-live{
-  display:flex;align-items:center;gap:.32rem;
-  transition:opacity .2s var(--ease-out),transform .2s var(--ease-out);
+  display:flex;align-items:center;gap:.32rem;opacity:1;
+  transition:opacity .18s var(--ease-out);
 }
 .post-timer-code,.fs-timer .fs-timer-code{
-  position:absolute;inset:0;margin:auto;width:16px;height:16px;
-  opacity:0;transform:scale(.82);pointer-events:none;
-  transition:opacity .2s var(--ease-out),transform .2s var(--ease-out);
+  position:absolute;top:0;bottom:0;margin:auto 0;
+  width:18px;height:18px;opacity:0;pointer-events:none;
+  transition:opacity .18s var(--ease-out);
 }
+.post-timer-code{right:0}
+/* 全屏胶囊自带左右内边距：右对齐到内容边缘，和计时数字的右端一致 */
+.fs-timer .fs-timer-code{right:.8rem}
 .post-timer.is-code .post-timer-live,
-.fs-timer.is-code .fs-timer-live{opacity:0;transform:scale(.94)}
+.fs-timer.is-code .fs-timer-live{opacity:0}
 .post-timer.is-code .post-timer-code,
-.fs-timer.is-code:not(.is-error) .fs-timer-code{opacity:1;transform:scale(1)}
+.fs-timer.is-code:not(.is-error) .fs-timer-code{opacity:1}
+.timer-roll-in{animation:chap-roll-in .32s var(--ease-out)}
 
 .post-reload-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem}
 .post-reload-hint{font-size:.85rem;color:var(--text-3)}
@@ -1275,8 +1279,8 @@ a{text-decoration:none}
           <span class="post-timer-num" id="post-read">-</span>
         </span>
         <svg class="post-timer-icon post-timer-code" viewBox="0 0 24 24" aria-hidden="true">
-          <polyline points="8 7 3 12 8 17"/>
-          <polyline points="16 7 21 12 16 17"/>
+          <polyline points="7 7 2 12 7 17"/>
+          <polyline points="17 7 22 12 17 17"/>
           <line x1="14" y1="5" x2="10" y2="19"/>
         </svg>
       </div>
@@ -1320,8 +1324,8 @@ a{text-decoration:none}
         <span id="fs-used">00</span>
       </span>
       <svg class="fs-timer-code" viewBox="0 0 24 24" aria-hidden="true">
-        <polyline points="8 7 3 12 8 17"/>
-        <polyline points="16 7 21 12 16 17"/>
+        <polyline points="7 7 2 12 7 17"/>
+        <polyline points="17 7 22 12 17 17"/>
         <line x1="14" y1="5" x2="10" y2="19"/>
       </svg>
     </div>
@@ -2752,6 +2756,10 @@ window.__siteDataReady.then(function () {
   const fsChap2         = $('fs-chap-2');
   const fsUsed          = $('fs-used');
   const fsTimer         = $('fs-timer');
+  const postTimerLive   = postTimer.querySelector('.post-timer-live');
+  const postTimerCode   = postTimer.querySelector('.post-timer-code');
+  const fsTimerLive     = fsTimer.querySelector('.fs-timer-live');
+  const fsTimerCode     = fsTimer.querySelector('.fs-timer-code');
 
   /* 标签页标题：打开文章时替换为文章标题，关闭后还原站点标题 */
   const SITE_TITLE = document.title;
@@ -2954,11 +2962,22 @@ window.__siteDataReady.then(function () {
       document.visibilityState !== 'hidden' &&
       !postHeaderRow.classList.contains('is-loading');
   }
+  function replayTimerRoll(els) {
+    els.forEach(function (el) {
+      el.classList.remove('timer-roll-in');
+      void el.offsetWidth; // 重置动画，保证每次切换都从下方滚入
+      el.classList.add('timer-roll-in');
+    });
+  }
   function setCodeReading(on) {
     if (inLongCode === on) return;
     inLongCode = on;
     postTimer.classList.toggle('is-code', on);
     fsTimer.classList.toggle('is-code', on);
+    /* 只让当前可见的计时器播放滚入，隐藏的那个留着下次出现时直接到位 */
+    replayTimerRoll(on
+      ? (isFullscreen ? [fsTimerCode] : [postTimerCode])
+      : (isFullscreen ? [fsTimerLive] : [postTimerLive]));
     if (on) pauseTimer();
     else if (canRunTimer()) startTimer();
   }
@@ -2966,6 +2985,9 @@ window.__siteDataReady.then(function () {
     inLongCode = false;
     postTimer.classList.remove('is-code');
     fsTimer.classList.remove('is-code');
+    [postTimerLive, postTimerCode, fsTimerLive, fsTimerCode].forEach(function (el) {
+      el.classList.remove('timer-roll-in');
+    });
   }
   /* 阅读判定线落在一个高于可视区的代码块内时：暂停计时并换用代码图标 */
   function updateCodeReading() {
