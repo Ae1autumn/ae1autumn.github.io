@@ -2973,6 +2973,16 @@ window.__siteDataReady.then(function hydrateViews() {
     try { localStorage.setItem(KEY, JSON.stringify(map)); } catch (e) {}
   }
 
+  /* 对话框高度平滑过渡：先量旧高度，改完 DOM 再量新高度，用 WAAPI 补间 */
+  function animateDialogHeight(dialog, from, to) {
+    if (!dialog || REDUCED_MOTION || typeof dialog.animate !== 'function') return;
+    if (Math.abs(from - to) < 1) return;
+    dialog.animate(
+      [{ height: from + 'px' }, { height: to + 'px' }],
+      { duration: COLLAPSE_MS, easing: 'cubic-bezier(.22,1,.36,1)' }
+    );
+  }
+
   function collapseItem(item) {
     if (!item || !item.isConnected) return;
     const dialog = item.closest ? item.closest('.fp-dialog') : null;
@@ -2985,13 +2995,7 @@ window.__siteDataReady.then(function hydrateViews() {
       const from = dialog.offsetHeight;
       item.remove();
       render();
-      if (REDUCED_MOTION || typeof dialog.animate !== 'function') return;
-      const to = dialog.offsetHeight;
-      if (Math.abs(from - to) < 1) return;
-      dialog.animate(
-        [{ height: from + 'px' }, { height: to + 'px' }],
-        { duration: COLLAPSE_MS, easing: 'cubic-bezier(.22,1,.36,1)' }
-      );
+      animateDialogHeight(dialog, from, dialog.offsetHeight);
       return;
     }
     /* 先锁定当前高度，再交给 CSS 把高度/内边距/外边距平滑收成 0 */
@@ -3097,8 +3101,13 @@ window.__siteDataReady.then(function hydrateViews() {
     clearBtn.classList.add('is-confirmed');
     setClearLabel('done');
     cancelPress();
+    /* 一键清空：列表瞬间换为空状态会让对话框突然变矮，
+       这里量取前后高度并用 WAAPI 补间，避免高度跳变 */
+    const dialog = list.closest ? list.closest('.fp-dialog') : null;
+    const from = dialog ? dialog.offsetHeight : 0;
     try { localStorage.removeItem(KEY); } catch (e) {}
     render();
+    if (dialog) animateDialogHeight(dialog, from, dialog.offsetHeight);
     clearTimeout(confirmTimer);
     confirmTimer = setTimeout(resetClear, 2000);
   });
