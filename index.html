@@ -998,7 +998,7 @@ a{text-decoration:none}
 /* 文内搜索：结果过滤 Tab（沿用全站搜索的指示块与滑块动画） */
 .sr-filter-wrap{flex-shrink:0;padding:.45rem .55rem .55rem}
 .sr-filter-tabs{
-  position:relative;display:flex;height:var(--control-h);padding:4px;
+  position:relative;display:flex;max-height:var(--control-h);padding:4px;
   border:var(--hairline) solid var(--border);border-radius:var(--radius-md);
   background:var(--bg);user-select:none;
 }
@@ -1009,7 +1009,7 @@ a{text-decoration:none}
   transition:transform .3s cubic-bezier(.77,0,.175,1),width .3s cubic-bezier(.77,0,.175,1);
 }
 .sr-filter-btn{
-  flex:1;position:relative;z-index:1;border-radius:7px;
+  flex:1;height:calc(var(--control-h) - 9px);position:relative;z-index:1;border-radius:7px;
   display:flex;align-items:center;justify-content:center;
   color:var(--text-3);transition:color .25s;
 }
