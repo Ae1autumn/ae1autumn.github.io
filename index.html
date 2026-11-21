@@ -3711,7 +3711,7 @@ window.__siteDataReady.then(function () {
   let inLongCode = false;
   let timerWidthCleanup = null;
   let openPanel = null;
-  let headings = [], tocItems = [], activeTocIdx = -1;
+  let headings = [], tocItems = [], activeTocIdx = -1, tocDirty = true;
   let currentChap1 = '', currentChap2 = '';
   let postScrollLocked = false;
   let closePostTimer = null;
@@ -3878,7 +3878,8 @@ window.__siteDataReady.then(function () {
     openPanel = name;
     startHijack();
     if (name === 'chapters') {
-      buildToc();
+      /* 标题集合没变就复用已有的目录项，省掉整表重建 */
+      if (tocDirty) buildToc();
       requestAnimationFrame(function () { syncTocActive(true); updateVFade(tocBody); refreshTocFades(); });
     }
     if (name === 'search') {
@@ -4290,6 +4291,7 @@ window.__siteDataReady.then(function () {
     });
 
     setChapterEmpty(!headings.length);
+    tocDirty = true;
     /* 目录在文章加载期间就被打开时，标题建好后补渲染一次 */
     if (openPanel === 'chapters') {
       buildToc();
@@ -4460,7 +4462,7 @@ window.__siteDataReady.then(function () {
   function updateChapterBlocks() {
     const c = getCurrentHeadings();
     if (c.parent === currentChap1 && c.child === currentChap2) {
-      syncTocActive();
+      syncTocActive(false, c.idx);
       return;
     }
     currentChap1 = c.parent;
@@ -4470,7 +4472,7 @@ window.__siteDataReady.then(function () {
     /* scrollWidth 不受折叠过渡影响，可立即判断；380ms 后再兜底测一次 */
     updateChapterSplit();
     setTimeout(updateChapterSplit, 380);
-    syncTocActive();
+    syncTocActive(false, c.idx);
   }
 
   function setChapterEmpty(isEmpty) {
@@ -4484,6 +4486,7 @@ window.__siteDataReady.then(function () {
     headings = [];
     tocItems = [];
     activeTocIdx = -1;
+    tocDirty = true;
     currentChap1 = '';
     currentChap2 = '';
     setChapterEmpty(true);
@@ -4496,6 +4499,7 @@ window.__siteDataReady.then(function () {
     tocList.innerHTML = '';
     tocItems = [];
     activeTocIdx = -1;
+    tocDirty = false;
     if (!headings.length) {
       tocList.innerHTML = '<p class="toc-empty">本文也许没有章节</p>';
       return;
@@ -4534,11 +4538,13 @@ window.__siteDataReady.then(function () {
     });
     requestAnimationFrame(refreshTocFades);
   }
-  function syncTocActive(force) {
-    if (openPanel !== 'chapters' || !tocItems.length) return;
-    const idx = getCurrentHeadings().idx;
+  function syncTocActive(force, idx) {
+    if (!tocItems.length) return;
+    if (idx === undefined) idx = getCurrentHeadings().idx;
     if (!force && idx === activeTocIdx) return;
     activeTocIdx = idx;
+    /* 面板隐藏时只记索引，不写 DOM、不测量，避免每帧强制布局 */
+    if (openPanel !== 'chapters') return;
     tocItems.forEach(function (el, i) { el.classList.toggle('is-active', i === idx); });
     if (idx >= 0 && tocItems[idx]) {
       const it = tocItems[idx];
