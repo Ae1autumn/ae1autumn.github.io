@@ -404,8 +404,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   position:fixed;inset:var(--header-h) 0 0;z-index:var(--z-menu);
   display:flex;align-items:center;justify-content:center;
   padding:1.25rem var(--pad-x) max(1.25rem,env(safe-area-inset-bottom));
-  background:color-mix(in srgb,var(--bg) 72%,transparent);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:var(--bg);
   transform:translateY(-100%);
   pointer-events:none;visibility:hidden;
   transition:transform .42s var(--ease-out),visibility 0s .42s;
