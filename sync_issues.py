@@ -4,7 +4,8 @@
 
 工作方式
 --------
-1. 用 GitHub REST API 拉取指定仓库的 issues（自动分页）。
+1. 用 GitHub REST API 拉取指定仓库的 issues（自动分页），默认只收录仓库所有者
+   本人发布的 issue（--author 可改白名单）。
 2. 用 ETag 做增量：内容没变时 GitHub 返回 304，不重复下载，也不消耗配额。
 3. 每个 issue 生成一个 Markdown 文件（默认 posts/issue-<编号>.md）。
 4. issue 被删除（或关闭，且 --state=open）时，删除对应的 .md。
@@ -95,6 +96,8 @@ Issue 正文里可以放这些隐藏标记（GitHub 页面上不显示）：
 常用参数
 --------
     --state open|all      只同步 open（默认）还是全部 issue
+    --author WHO          只收录这些 GitHub 用户发布的 issue（逗号分隔，
+                          默认仓库所有者；填 * 表示不限作者）
     --articles-dir PATH   本地文章源目录，默认脚本同级的 articles/
     --no-issues           跳过 GitHub，只处理 articles/
     --prune-unmanaged     删除 data.jsonc 里不由本脚本管理的旧文章（默认保留）
@@ -995,8 +998,22 @@ def has_next_page(headers):
     return 'rel="next"' in (headers.get("Link") or "")
 
 
-def fetch_issues(api_base, repo, args, token, state):
-    """返回 (当前 issue 编号集合, 本页新拉到的 issue 数据 dict)。"""
+def parse_authors(raw, repo):
+    """把 --author 解析成小写用户名集合；空值默认取仓库所有者，* 表示不限制。"""
+    raw = (raw or "").strip()
+    if raw == "*":
+        return None
+    names = [n.strip().lstrip("@").lower() for n in raw.split(",") if n.strip()]
+    if not names and repo:
+        names = [repo.split("/", 1)[0].strip().lower()]
+    return set(names) or None
+
+
+def fetch_issues(api_base, repo, args, token, state, authors=None, force_refetch=False):
+    """返回 (当前 issue 编号集合, 本页新拉到的 issue 数据 dict)。
+
+    authors 为小写用户名集合时只收录这些作者的 issue，None 表示不限。
+    """
     page = 1
     current = set()
     pending = {}
@@ -1006,7 +1023,7 @@ def fetch_issues(api_base, repo, args, token, state):
         url = issue_page_url(api_base, repo, args, page)
         seen_urls.add(url)
         cached = state["pages"].get(url) or {}
-        etag = None if args.full else cached.get("etag")
+        etag = None if (args.full or force_refetch) else cached.get("etag")
         status, data, headers = api_get(url, token, etag)
 
         if status == 304:
@@ -1022,15 +1039,22 @@ def fetch_issues(api_base, repo, args, token, state):
             continue
 
         nums = []
+        skipped = 0
         for issue in data:
             if "pull_request" in issue:  # 列表接口会混入 PR
                 continue
+            if authors is not None:
+                login = str((issue.get("user") or {}).get("login") or "").lower()
+                if login not in authors:
+                    skipped += 1
+                    continue
             number = int(issue["number"])
             nums.append(number)
             current.add(number)
             pending[number] = issue
         state["pages"][url] = {"etag": headers.get("ETag"), "numbers": nums}
-        log(f"  第 {page} 页：{len(data)} 条，其中 issue {len(nums)} 篇")
+        extra = f"，跳过非白名单作者 {skipped} 篇" if skipped else ""
+        log(f"  第 {page} 页：{len(data)} 条，其中 issue {len(nums)} 篇{extra}")
 
         if not data or not has_next_page(headers):
             break
@@ -1093,6 +1117,12 @@ def build_parser():
     )
     parser.add_argument("--repo", default=detect_repo(), help="owner/repo，默认从 git remote 推断")
     parser.add_argument("--label", default="", help="只同步带这个标签的 issue；不填则同步全部")
+    parser.add_argument(
+        "--author",
+        default="",
+        help="只收录这些 GitHub 用户发布的 issue（逗号分隔，@ 可省略）；"
+             "默认仓库所有者，* 表示不限作者",
+    )
     parser.add_argument("--state", choices=["open", "all"], default="open", help="同步 open 还是全部 issue")
     parser.add_argument("--token", default=token_from_env(), help="GitHub Token，默认读 GITHUB_TOKEN / GH_TOKEN")
     parser.add_argument("--api-base", default=DEFAULT_API_BASE, help="API 地址，GitHub Enterprise 可改")
@@ -1125,7 +1155,11 @@ def main():
     if args.no_issues:
         args.repo = ""
     args.label = (args.label or "").strip()
+    args.author = (args.author or "").strip()
     args.api_base = args.api_base.rstrip("/")
+
+    authors = parse_authors(args.author, args.repo)
+    author_key = ",".join(sorted(authors)) if authors else "*"
 
     data_file = Path(args.data_file).resolve()
     config_file = Path(args.config_file).resolve()
@@ -1139,6 +1173,7 @@ def main():
 
     if args.repo:
         log(f"仓库：{args.repo}")
+        log("作者白名单：" + ("不限（*）" if authors is None else ", ".join(sorted(authors))))
     else:
         log("仓库：已跳过（--no-issues）")
     log(f"数据：{data_file}")
@@ -1153,6 +1188,8 @@ def main():
             log("提示：--label 与上次不同，不在新列表里的旧 issue 会被删除")
         if state.get("api_state") is not None and state.get("api_state") != args.state:
             log("提示：--state 与上次不同，状态不同的 issue 会被增删")
+        if state.get("authors") is not None and state.get("authors") != author_key:
+            log("提示：作者白名单与上次不同，不在新列表里的旧 issue 会被删除")
     # 本次运行实际由脚本管理的 slug（含刚被删掉的旧条目），用于阻止旧条目从 data.jsonc
     # 被当成“手工文章”又保留下来。
     managed_slugs = {info.get("slug") for info in state["issues"].values() if info.get("slug")}
@@ -1167,7 +1204,10 @@ def main():
         deleted_numbers = []
     else:
         log("拉取 issues：")
-        current, pending = fetch_issues(args.api_base, args.repo, args, args.token, state)
+        current, pending = fetch_issues(
+            args.api_base, args.repo, args, args.token, state,
+            authors, force_refetch=(state.get("authors") != author_key),
+        )
 
         # 1) 删除已消失的 issue 对应的文件
         deleted_numbers = sorted(set(int(n) for n in state["issues"]) - current)
@@ -1307,6 +1347,7 @@ def main():
     if not args.no_issues:
         state["label"] = args.label
         state["api_state"] = args.state
+        state["authors"] = author_key
     state_changed = save_state(state_file, state, old_state_text, args.dry_run)
 
     suffix = "（dry-run）" if args.dry_run else ""
