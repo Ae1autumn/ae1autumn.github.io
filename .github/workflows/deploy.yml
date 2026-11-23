@@ -38,7 +38,7 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          cp index.html data.jsonc _site/
+          cp index.html data.jsonc sw.js _site/
           cp -R posts _site/
           touch _site/.nojekyll
 

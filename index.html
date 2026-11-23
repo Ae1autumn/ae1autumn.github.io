@@ -1423,6 +1423,21 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 <body>
 
 <script>
+/* ═══════════════ CDN 资源缓存 ═══════════════
+   sw.js 只拦截第三方静态资源（脚本 / 样式 / 字体 / 图片）做离线缓存；
+   同源的 data.jsonc、posts/*.md 和统计请求不缓存，改动仍然立刻生效。
+   Service Worker 需要 HTTPS 或 localhost，file:// 预览时自动跳过。 */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  var host = location.hostname;
+  if (location.protocol !== 'https:' && host !== 'localhost' && host !== '127.0.0.1') return;
+  navigator.serviceWorker.register('./sw.js').catch(function (err) {
+    console.warn('[cdn-cache] Service Worker 注册失败：', err);
+  });
+})();
+</script>
+
+<script>
 /* 键盘导航检测：仅在用键盘操作时给 <html> 加 using-keyboard，用于显示焦点环 */
 (function () {
   var root = document.documentElement, kbd = false;
