@@ -4256,13 +4256,22 @@ window.__siteDataReady.then(function () {
     }
   }
 
-  function scrollToHeading(id, smooth) {
-    var target = document.getElementById(id);
-    if (!target || !postContent.contains(target)) return false;
-    var top = target.getBoundingClientRect().top - postContent.getBoundingClientRect().top + postContent.scrollTop - 14;
+  /* 文内跳转的统一落点：目标顶部对齐到视口高度的 30% 处。
+     脚注引用/回链、手写 #锚点、目录、?h= 深链都走这里 */
+  var ANCHOR_TOP_RATIO = 0.3;
+  function scrollToAnchor(target, smooth) {
+    if (!target) return;
+    var offset = target.getBoundingClientRect().top - postContent.getBoundingClientRect().top + postContent.scrollTop;
+    var top = offset - postContent.clientHeight * ANCHOR_TOP_RATIO;
     if (smooth) postContent.scrollTo({ top: top, behavior: 'smooth' });
     else postContent.scrollTop = top;
     updateProgress(); updateChapterBlocks(); updateVFade(postContent); updateCodeReading();
+  }
+
+  function scrollToHeading(id, smooth) {
+    var target = document.getElementById(id);
+    if (!target || !postContent.contains(target)) return false;
+    scrollToAnchor(target, smooth);
     return true;
   }
 
@@ -4544,8 +4553,7 @@ window.__siteDataReady.then(function () {
       scroll.appendChild(text);
       item.appendChild(scroll);
       item.addEventListener('click', function () {
-        const top = h.el.getBoundingClientRect().top - postContent.getBoundingClientRect().top + postContent.scrollTop - 14;
-        postContent.scrollTo({ top: top, behavior: 'smooth' });
+        scrollToAnchor(h.el, true);
         setTimeout(closeAllPanels, 250);
       });
       tocList.appendChild(item);
@@ -5373,8 +5381,7 @@ window.__siteDataReady.then(function () {
     if (!target || !postContent.contains(target)) return;
     /* 目标藏在折叠块（脚注等）里：先展开，再按展开后的布局定位 */
     if (window.revealFoldTarget) window.revealFoldTarget(target);
-    const delta = target.getBoundingClientRect().top - postContent.getBoundingClientRect().top;
-    postContent.scrollTop += delta - 20;
+    scrollToAnchor(target);
   });
 
   /* 表格横向滚动：滚动时更新边缘渐隐（capture 才能捕获容器自身的 scroll） */
