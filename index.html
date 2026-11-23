@@ -1113,6 +1113,15 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 #panel-chapters.is-open .panel-box{transform:translateX(0)}
 #panel-search .panel-box{transform:translateX(calc(100% + 20px));transition:transform .36s var(--ease-spring)}
 #panel-search.is-open .panel-box{transform:translateX(0)}
+/* 桌面且左右边距足够：TOC / 搜索贴视口侧边，入场改为从上往下，收起反向 */
+#panel-chapters.is-drop,#panel-search.is-drop{overflow:hidden}
+#panel-chapters.is-drop .panel-box,
+#panel-search.is-drop .panel-box{
+  transform:translateY(calc(-100% - 20px));
+  transition:transform .36s var(--ease-spring);
+}
+#panel-chapters.is-drop.is-open .panel-box,
+#panel-search.is-drop.is-open .panel-box{transform:translateY(0)}
 /* 高度完全交给 CSS：顶部由 JS 定位，底部固定留 GAP，剩余空间即是最大高度。
    内容不足时最小 180px，超出部分由 .panel 裁剪 */
 #panel-comments{
@@ -3861,6 +3870,8 @@ window.__siteDataReady.then(function () {
     const w = Math.min(Math.max(r.width * 0.5, 190), 340);
     if (isFullscreen) {
       // 工具栏隐藏：TOC 锚定左上角悬浮指示器下方，搜索/评论贴顶部
+      panelChapters.classList.remove('is-drop');
+      panelSearch.classList.remove('is-drop');
       const fsTop = 38 + GAP * 2; // 悬浮条 top + 高度 + 间距
       const fsMaxH = Math.max(window.innerHeight - fsTop - GAP, 160);
       panelChapters.style.top = fsTop + 'px';
@@ -3881,8 +3892,11 @@ window.__siteDataReady.then(function () {
       return;
     }
     const col = pageColumn();
-    /* 普通模式：左右边距放得下面板时贴视口两侧滑出，否则仍贴着正文列 */
-    const sideFit = col.left >= GAP + w;
+    /* 普通模式：桌面端且左右边距放得下面板时贴视口两侧，并从上方落下；
+       否则仍贴着正文列、保持左右滑入滑出 */
+    const sideFit = window.innerWidth >= 768 && col.left >= GAP + w;
+    panelChapters.classList.toggle('is-drop', sideFit);
+    panelSearch.classList.toggle('is-drop', sideFit);
     const sideLeft = sideFit ? GAP : Math.max(col.left + GAP, 8);
     const sideRight = sideFit ? GAP : Math.max(col.vw - col.right + GAP, 8);
     panelChapters.style.top = (r.top + GAP) + 'px';
