@@ -262,7 +262,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   color:var(--text-3);transition:color var(--transition-medium);
 }
 .sm-tab-btn.is-active{color:var(--text)}
-.sm-tab-btn svg{display:block;width:16px;height:16px}
+.sm-tab-btn svg{display:block}
 /* 收起后的点条 */
 .sm-dots-row,.sr-dots-row{display:flex;gap:4px;width:100%;height:10px;align-items:center;padding:0 2px}
 .sm-dot-bar,.sr-dot-bar{flex:1;height:2px;border-radius:var(--radius-xs);background:var(--border);cursor:pointer;transition:background-color .3s}
@@ -1211,7 +1211,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   color:var(--text-3);transition:color .25s;
 }
 .sr-filter-btn.is-active{color:var(--text)}
-.sr-filter-btn svg{display:block;width:16px;height:16px}
+.sr-filter-btn svg{display:block}
 
 /* 纵向边缘渐隐（正文 / 目录 / 搜索结果共用）：有隐藏内容的一侧文字淡出 */
 .fade-t{-webkit-mask-image:linear-gradient(to bottom,transparent,#000 16px);mask-image:linear-gradient(to bottom,transparent,#000 16px)}
@@ -1527,7 +1527,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
       <div class="sm-tabs" id="sm-tabs" role="tablist">
         <div class="sm-tab-slider" id="sm-tab-slider" aria-hidden="true"></div>
         <button class="sm-tab-btn is-active" data-mode="title" role="tab" aria-selected="true" aria-label="按标题搜索" title="按标题搜索">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text transform="translate(0.35 11.44) scale(0.59 1)" font-size="12" fill="currentColor">Tex_</text></svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-body)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
         </button>
         <button class="sm-tab-btn" data-mode="date" role="tab" aria-selected="false" aria-label="按日期搜索" title="按日期搜索">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.1"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><rect x="4" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/><rect x="8.9" y="9" width="2.2" height="2.2" rx="0.4" fill="currentColor" opacity="0.6"/></svg>
@@ -1743,7 +1743,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
         <div class="sr-filter-tabs" id="sr-filter-tabs" role="tablist" aria-label="搜索结果过滤">
           <div class="sr-filter-slider" id="sr-filter-slider" aria-hidden="true"></div>
           <button class="sr-filter-btn is-active" data-filter="body" role="tab" aria-selected="true" aria-label="正文" title="正文">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text transform="translate(0.35 11.44) scale(0.59 1)" font-size="12" fill="currentColor">Tex_</text></svg>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><text x="1" y="13" font-family="var(--font-body)" font-size="8" fill="currentColor" letter-spacing="-0.5">Tex_</text></svg>
           </button>
           <button class="sr-filter-btn" data-filter="code" role="tab" aria-selected="false" aria-label="代码" title="代码">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="7 7 2 12 7 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 7 22 12 17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="5" x2="10" y2="19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -1752,7 +1752,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2h6l6 6-6 6-6-6V2z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" opacity="0.7"/></svg>
           </button>
           <button class="sr-filter-btn" data-filter="all" role="tab" aria-selected="false" aria-label="全文" title="全文">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v6h6v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15.5" cy="16.5" r="4.2" stroke="currentColor" stroke-width="1.3"/><path d="m18.6 19.6 2.4 2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v6h6v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="15.5" cy="16.5" r="4.2" stroke="currentColor" stroke-width="1.3"/><path d="m18.6 19.6 2.4 2.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
           </button>
         </div>
       </div>
