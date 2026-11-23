@@ -853,7 +853,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content h1:first-child,.post-content h2:first-child{margin-top:0}
 .post-content p{font-size:.95rem;color:var(--text-2);margin-bottom:1.1rem;letter-spacing:.01em}
 .post-content strong{color:var(--text);font-weight:600}
-.post-content code{font-family:var(--font-mono);font-size:.8rem;background:var(--surface);border:var(--hairline) solid var(--border);border-radius:6px;padding:.12em .4em}
+/* 行内代码：Xenon 的 descent（.2em）比中文下缘（约 .12em）深，等大的上下留白会让
+   底色盒整体沉到基线以下。留白改为上多下少，让底色盒围绕汉字字面居中，
+   文字本身仍贴同一条基线，不参与位移 */
+.post-content code{font-family:var(--font-mono);font-size:.8rem;background:var(--surface);border:var(--hairline) solid var(--border);border-radius:6px;padding:.2em .4em .06em}
 .post-content pre{font-family:var(--font-mono);background:var(--surface);border:var(--hairline) solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem;overflow-x:auto;margin:0 0 1.2rem}
 .post-content pre code{background:none;border:none;padding:0;border-radius:0}
 
