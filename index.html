@@ -412,6 +412,19 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   transform:translateY(0);pointer-events:auto;visibility:visible;
   transition:transform .42s var(--ease-out);
 }
+/* 桌面端：菜单不再整块滑入，改为淡入淡出；背景板保留但换成模糊 */
+@media (min-width: 768px){
+  .menu-overlay{
+    background:color-mix(in srgb,var(--bg) 40%,transparent);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    transform:none;opacity:0;
+    transition:opacity .3s var(--ease-out),visibility 0s .3s;
+  }
+  .menu-overlay.is-open{
+    transform:none;opacity:1;
+    transition:opacity .3s var(--ease-out);
+  }
+}
 .menu-box{
   position:relative;
   width:220px;height:160px;flex-shrink:0;
@@ -586,7 +599,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 #post-page{
   position:fixed;inset:0;z-index:var(--z-post);
   display:flex;flex-direction:column;overflow:hidden;
-  transform:translateY(100%);
+  transform:translateY(-100%);
   transition:transform .45s var(--ease-spring);
   pointer-events:none;
 }
@@ -1111,6 +1124,9 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   transform:translateY(-100%);transition:transform .36s var(--ease-spring);
 }
 #panel-comments.is-open .panel-box{transform:translateY(0)}
+/* 普通模式：评论面板从下往上滑入，收起时反向落下；全屏模式保持原有方向 */
+#post-page:not(.is-fullscreen) ~ #panel-comments .panel-box{transform:translateY(100vh);transform:translateY(100dvh)}
+#post-page:not(.is-fullscreen) ~ #panel-comments.is-open .panel-box{transform:translateY(0)}
 .panel:not(.is-open) .panel-box{transition:transform .36s cubic-bezier(.4,0,1,1) .08s;pointer-events:none}
 
 /* 面板通用内件 */
@@ -3831,8 +3847,14 @@ window.__siteDataReady.then(function () {
     postBlur.style.height = document.getElementById('title-bar').offsetHeight + 'px';
   }
 
-  /* ── 面板坐标：左右面板宽≈容器一半，高随内容 ── */
+  /* ── 面板坐标：左右面板宽≈正文列一半，高随内容 ── */
   const GAP = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-gap')) || 12;
+  function pageColumn() {
+    const vw = window.innerWidth;
+    const pageW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-w')) || 720;
+    const w = Math.min(vw, pageW);
+    return { left: (vw - w) / 2, width: w, right: (vw + w) / 2, vw: vw };
+  }
   function syncPanelPositions() {
     const r = postContent.getBoundingClientRect();
     const tr = postToolbarRow.getBoundingClientRect();
@@ -3858,8 +3880,13 @@ window.__siteDataReady.then(function () {
       if (openPanel === 'search') requestAnimationFrame(function () { updateFilterSlider(filterIdx, true); });
       return;
     }
+    const col = pageColumn();
+    /* 普通模式：左右边距放得下面板时贴视口两侧滑出，否则仍贴着正文列 */
+    const sideFit = col.left >= GAP + w;
+    const sideLeft = sideFit ? GAP : Math.max(col.left + GAP, 8);
+    const sideRight = sideFit ? GAP : Math.max(col.vw - col.right + GAP, 8);
     panelChapters.style.top = (r.top + GAP) + 'px';
-    panelChapters.style.left = Math.max(r.left + GAP, 8) + 'px';
+    panelChapters.style.left = sideLeft + 'px';
     panelChapters.style.width = w + 'px';
     panelChapters.style.maxHeight = (r.height * 0.55) + 'px';
     const cmW = Math.min(r.width - GAP * 2, 640);
@@ -3869,7 +3896,7 @@ window.__siteDataReady.then(function () {
     panelComments.style.left = (r.left + (r.width - cmW) / 2) + 'px';
     panelComments.style.right = 'auto';
     panelSearch.style.top = (r.top + GAP) + 'px';
-    panelSearch.style.right = Math.max(window.innerWidth - r.right + GAP, 8) + 'px';
+    panelSearch.style.right = sideRight + 'px';
     panelSearch.style.width = w + 'px';
     panelSearch.style.maxHeight = (r.height * 0.55) + 'px';
     if (openPanel === 'search') requestAnimationFrame(function () { updateFilterSlider(filterIdx, true); });
