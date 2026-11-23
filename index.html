@@ -870,6 +870,8 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content .code-block.is-collapsed,
 .post-content .footnotes.is-collapsed{cursor:pointer}
 .post-content .code-block.is-static{cursor:pointer}
+/* 双击复制：关闭双击缩放，让触屏的两次点击都能正常触发 click */
+.post-content .code-block{touch-action:manipulation}
 .post-content .code-block pre{margin:0;border:none;border-radius:0;background:none}
 /* 头栏与站内控件同一套高度与间距 */
 .post-content .code-head{
@@ -2584,7 +2586,7 @@ window.__siteDataReady.then(function hydrateViews() {
         langBtn = document.createElement('button');
         langBtn.type = 'button';
         langBtn.className = 'code-lang';
-        langBtn.textContent = lang || 'Text';
+        langBtn.textContent = lang ? lang.charAt(0).toUpperCase() + lang.slice(1) : 'Text';
         langBtn.title = '复制代码';
         langBtn.setAttribute('aria-label', '复制代码');
 
@@ -2617,18 +2619,30 @@ window.__siteDataReady.then(function hydrateViews() {
         }
       };
 
+      /* 代码区改为双击才复制，避免单击阅读/滚动时误触。
+         判定同时看 e.detail 和两次点击间隔，兼容触屏的双击 */
+      var COPY_DBL_GAP = 320;
+      var lastCopyTap = 0;
+      var isCopyTap = function (e) {
+        var now = Date.now();
+        var dbl = (e.detail && e.detail >= 2) || (now - lastCopyTap < COPY_DBL_GAP);
+        lastCopyTap = dbl ? 0 : now;
+        return dbl;
+      };
+
       if (collapsible) {
-        /* 收起时：点 Type 复制，点其它地方展开；展开后：点顶栏收起，点代码区复制 */
+        /* 收起时：点 Type 复制，点其它地方展开；展开后：点顶栏收起，双击代码区复制 */
         block.addEventListener('click', function (e) {
           var t = e.target;
           if (t && t.closest && (t.closest('.code-lang') || t.closest('a'))) return;
-          if (hasCodeSelection()) return;
           var collapsed = block.classList.contains('is-collapsed');
           var inHead = !!(t && t.closest && t.closest('.code-head'));
           if (collapsed || inHead) {
+            if (hasCodeSelection()) return;
+            lastCopyTap = 0;
             setCodeCollapsed(block, !collapsed);
             if (window.refreshPostLayout) window.refreshPostLayout();
-          } else {
+          } else if (isCopyTap(e)) {
             doCopy();
           }
         });
@@ -2636,11 +2650,10 @@ window.__siteDataReady.then(function hydrateViews() {
         langBtn.addEventListener('click', doCopy);
         setCodeCollapsed(block, flag === 'collapse' || (!flag && auto));
       } else {
-        /* 普通代码块：点击即复制 */
+        /* 普通代码块：双击复制 */
         block.addEventListener('click', function (e) {
           if (e.target && e.target.closest && e.target.closest('a')) return;
-          if (hasCodeSelection()) return;
-          doCopy();
+          if (isCopyTap(e)) doCopy();
         });
       }
     }
