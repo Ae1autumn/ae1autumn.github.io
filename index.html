@@ -4985,8 +4985,7 @@ window.__siteDataReady.then(function () {
     const el = hits[globalIdx];
     /* 命中词在折叠块（脚注等）里：先展开，否则定位到的是折叠后的旧布局 */
     if (window.revealFoldTarget) window.revealFoldTarget(el);
-    const top = el.getBoundingClientRect().top - postContent.getBoundingClientRect().top + postContent.scrollTop - postContent.clientHeight / 2;
-    postContent.scrollTo({ top: top, behavior: 'smooth' });
+    scrollToAnchor(el, true);
     const it = srItems[itemIdx];
     if (it) {
       const scroll = it.querySelector('.sr-scroll');
