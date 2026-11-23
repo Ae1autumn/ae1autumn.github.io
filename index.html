@@ -1058,7 +1058,8 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-content .footnotes.is-collapsed .code-head{border-bottom:none}
 .post-content .footnotes .fn-body{padding:.7rem var(--panel-gap) .85rem}
 .post-content .footnotes .code-lang{pointer-events:none}
-.post-content .footnotes ol{padding-left:1.2rem;margin-bottom:0}
+/* 序号是 list-style-position:inside，额外左内边距只会让左侧留白大于右侧 */
+.post-content .footnotes ol{padding-left:0;margin-bottom:0}
 .post-content .footnotes li{margin-bottom:.4rem}
 .post-content .footnotes p{display:inline;margin:0}
 .post-content a[data-footnote-backref]{margin-left:.3em}
