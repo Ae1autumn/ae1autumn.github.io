@@ -599,11 +599,15 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 #post-page{
   position:fixed;inset:0;z-index:var(--z-post);
   display:flex;flex-direction:column;overflow:hidden;
-  transform:translateY(-100%);
+  transform:translateY(100%);
   transition:transform .45s var(--ease-spring);
   pointer-events:none;
 }
 #post-page.is-open{transform:translateY(0);pointer-events:auto}
+/* 桌面端改为从上往下滑入；移动端保持从下往上 */
+@media (min-width: 768px){
+  #post-page{transform:translateY(-100%)}
+}
 
 .post-blur{flex-shrink:0;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer}
 .post-body{flex:1;min-height:0;background:var(--bg);display:flex;flex-direction:column;transition:background-color .3s}
