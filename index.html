@@ -79,8 +79,16 @@
   --font-slogan:  "Cormorant Garamond", serif;
 
   /* metrics */
+  /* 桌面端与移动端共用同一组尺寸上限：页面列固定 720px，窄屏时自然等于视口；
+     左右留白、正文列、文章面板、弹窗都从这一列推导 */
   --page-w: 720px;
-  --pad-x: clamp(1.25rem, 5vw, 2rem);
+  --pad-x: 1.25rem;
+  /* 正文列 = 页面列减去左右留白，桌面端也与手机一样吃满整列 */
+  --content-w: calc(var(--page-w) - 2 * var(--pad-x));
+  /* 文章内浮层（目录 / 文内搜索）宽度上限，桌面端不再比手机更宽 */
+  --panel-w: 240px;
+  /* 所有弹窗共用的宽度上限 */
+  --dialog-w: 360px;
   --radius: 12px;
   --radius-xs: 2px;
   --radius-lg: 16px;
@@ -89,7 +97,6 @@
   --panel-gap: 12px;
   --panel-gap-tight: 10px;
   /* typography */
-  --max-width-ch: 65ch;
   /* navigation */
   --nav-icon-size: 30px;
   /* footer */
@@ -202,7 +209,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 #search-modal.is-open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .25s}
 .search-dialog{
-  width:min(420px,calc(100vw - 2.5rem));
+  width:min(var(--dialog-w),calc(100vw - 2 * var(--pad-x)));
   max-height:80vh;
   display:flex;flex-direction:column;gap:var(--panel-gap-tight);
   background:var(--surface);
@@ -475,7 +482,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 #footprint-modal.is-open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .25s}
 .fp-dialog{
-  width:min(420px,100%);max-height:min(80vh,640px);
+  width:min(var(--dialog-w),100%);max-height:min(80vh,640px);
   display:flex;flex-direction:column;gap:10px;
   background:var(--surface);
   border:var(--hairline) solid var(--border);
@@ -600,6 +607,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-header-row{
   position:relative;z-index:calc(var(--z-post) + 1);flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  width:100%;max-width:var(--page-w);margin:0 auto;
   height:var(--toolbar-h);padding:0 var(--pad-x);
   border-top:var(--hairline) solid var(--border);
 }
@@ -656,6 +664,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-toolbar-row{
   position:relative;z-index:var(--z-post-ui);flex-shrink:0;
   display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  width:100%;max-width:var(--page-w);margin:0 auto;
   height:var(--toolbar-h);padding:0 var(--pad-x);
   border-bottom:var(--hairline) solid var(--border);
 }
@@ -770,8 +779,10 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .fs-chap{
   /* 左侧贴 --panel-gap；最宽时右缘与计时器之间保留 2 个 --panel-gap。
      计时器的实际宽度（数字位数、代码图标切换、字体加载都会变）由 JS 写入 --fs-timer-w，
-     不再用固定值估算，避免标题过长时被算宽而挤到计时器 */
-  left:var(--panel-gap);max-width:calc(100vw - var(--fs-timer-w, 64px) - var(--panel-gap) * 4);overflow:hidden;cursor:pointer;
+     不再用固定值估算，避免标题过长时被算宽而挤到计时器。
+     左右定位以与正文相同的 720px 页面列为基准，桌面端不会浮到窗口边缘 */
+  left:max(var(--panel-gap), calc((100vw - var(--page-w)) / 2 + var(--panel-gap)));
+  max-width:calc(min(100vw, var(--page-w)) - var(--fs-timer-w, 64px) - var(--panel-gap) * 4);overflow:hidden;cursor:pointer;
   font-family:var(--font-body);font-size:.72rem;letter-spacing:.02em;color:var(--text-2);
   transition:border-color .18s;touch-action:manipulation;
 }
@@ -821,7 +832,8 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* 普通模式没有章节时隐藏「目录」文字，但保留按钮点击区域 */
 .post-chapters-wrap.is-empty .post-chapters-hint{opacity:0}
 .fs-timer{
-  right:var(--panel-gap);flex-shrink:0;gap:0;
+  right:max(var(--panel-gap), calc((100vw - var(--page-w)) / 2 + var(--panel-gap)));
+  flex-shrink:0;gap:0;
   /* 固定 1rem，与正文两行一致；暂无变量，先硬编码，日后统一替换。
      两态同值且不参与过渡，避免切换时 padding 与内容宽度互相拉扯产生弹跳 */
   padding:0 1rem;
@@ -838,7 +850,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
   padding:2.4rem var(--pad-x) 6rem;
 }
-.post-content-inner{max-width:calc(var(--max-width-ch));margin:0 auto}
+.post-content-inner{max-width:var(--content-w);margin:0 auto}
 
 /* markdown 排版 */
 .post-content h1,.post-content h2,.post-content h3,.post-content h4{
@@ -1095,7 +1107,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   background:color-mix(in srgb,var(--surface) 72%,transparent);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
 }
-/* 左右面板：宽度≈容器一半，高度随内容，上限由 JS 约束 */
+/* 左右面板：宽度按 --page-w 列的一半、夹在 190–240px（--panel-w），高度随内容 */
 #panel-chapters,#panel-search{height:auto}
 #panel-chapters .panel-box{transform:translateX(calc(-100% - 20px));transition:transform .36s var(--ease-spring)}
 #panel-chapters.is-open .panel-box{transform:translateX(0)}
@@ -1246,7 +1258,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 #copy-modal.is-open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .22s}
 .copy-box{
-  width:min(320px,calc(100vw - 3rem));
+  width:min(var(--dialog-w),calc(100vw - 2 * var(--pad-x)));
   display:flex;flex-direction:column;gap:12px;padding:16px;
   /* 磨砂背景：与章节（TOC）面板一致 */
   background:color-mix(in srgb,var(--surface) 72%,transparent);
@@ -1298,7 +1310,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 }
 #nav-confirm.is-open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .22s}
 .nav-confirm-box{
-  width:min(340px,calc(100vw - 3rem));
+  width:min(var(--dialog-w),calc(100vw - 2 * var(--pad-x)));
   display:flex;flex-direction:column;gap:14px;padding:18px;
   background:var(--surface);border:var(--hairline) solid var(--border);
   border-radius:12px;
@@ -3832,45 +3844,53 @@ window.__siteDataReady.then(function () {
     postBlur.style.height = document.getElementById('title-bar').offsetHeight + 'px';
   }
 
-  /* ── 面板坐标：左右面板宽≈容器一半，高随内容 ── */
+  /* ── 面板坐标：与正文共用同一条 --page-w 列，窄屏时该列自然等于视口 ── */
   const GAP = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-gap')) || 12;
+  function pageColumn() {
+    const vw = window.innerWidth;
+    const pageW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-w')) || 720;
+    const w = Math.min(vw, pageW);
+    return { left: (vw - w) / 2, width: w, right: (vw + w) / 2 };
+  }
   function syncPanelPositions() {
     const r = postContent.getBoundingClientRect();
     const tr = postToolbarRow.getBoundingClientRect();
-    const w = Math.min(Math.max(r.width * 0.5, 190), 340);
+    const col = pageColumn();
+    const panelMax = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 240;
+    const w = Math.min(Math.max(col.width * 0.5, 190), panelMax);
     if (isFullscreen) {
       // 工具栏隐藏：TOC 锚定左上角悬浮指示器下方，搜索/评论贴顶部
       const fsTop = 38 + GAP * 2; // 悬浮条 top + 高度 + 间距
       const fsMaxH = Math.max(window.innerHeight - fsTop - GAP, 160);
       panelChapters.style.top = fsTop + 'px';
-      panelChapters.style.left = GAP + 'px';
+      panelChapters.style.left = Math.max(col.left + GAP, GAP) + 'px';
       panelChapters.style.width = w + 'px';
       /* TOC 最大高度与普通模式保持一致 */
       panelChapters.style.maxHeight = (r.height * 0.55) + 'px';
-      const cmW = Math.min(r.width - GAP * 2, 640);
+      const cmW = Math.min(col.width - GAP * 2, 640);
       panelComments.style.top = fsTop + 'px';
       panelComments.style.width = cmW + 'px';
-      panelComments.style.left = (r.left + (r.width - cmW) / 2) + 'px';
+      panelComments.style.left = (col.left + (col.width - cmW) / 2) + 'px';
       panelComments.style.right = 'auto';
       panelSearch.style.top = fsTop + 'px';
-      panelSearch.style.right = Math.max(window.innerWidth - r.right + GAP, 8) + 'px';
+      panelSearch.style.right = Math.max(window.innerWidth - col.right + GAP, 8) + 'px';
       panelSearch.style.width = w + 'px';
       panelSearch.style.maxHeight = fsMaxH + 'px';
       if (openPanel === 'search') requestAnimationFrame(function () { updateFilterSlider(filterIdx, true); });
       return;
     }
     panelChapters.style.top = (r.top + GAP) + 'px';
-    panelChapters.style.left = Math.max(r.left + GAP, 8) + 'px';
+    panelChapters.style.left = Math.max(col.left + GAP, 8) + 'px';
     panelChapters.style.width = w + 'px';
     panelChapters.style.maxHeight = (r.height * 0.55) + 'px';
-    const cmW = Math.min(r.width - GAP * 2, 640);
+    const cmW = Math.min(col.width - GAP * 2, 640);
     const cmTop = tr.bottom + GAP;
     panelComments.style.top = cmTop + 'px';
     panelComments.style.width = cmW + 'px';
-    panelComments.style.left = (r.left + (r.width - cmW) / 2) + 'px';
+    panelComments.style.left = (col.left + (col.width - cmW) / 2) + 'px';
     panelComments.style.right = 'auto';
     panelSearch.style.top = (r.top + GAP) + 'px';
-    panelSearch.style.right = Math.max(window.innerWidth - r.right + GAP, 8) + 'px';
+    panelSearch.style.right = Math.max(window.innerWidth - col.right + GAP, 8) + 'px';
     panelSearch.style.width = w + 'px';
     panelSearch.style.maxHeight = (r.height * 0.55) + 'px';
     if (openPanel === 'search') requestAnimationFrame(function () { updateFilterSlider(filterIdx, true); });
@@ -4449,7 +4469,7 @@ window.__siteDataReady.then(function () {
 
   /* 父项上限 = 指示器容器最大宽度的一半。
      普通模式：容器最多占工具栏一半，所以取工具栏内容宽度 / 4 作为阈值；
-     全屏模式：容器最大宽度 = 视口 - 左右边距 - 计时器宽度 - 2 个元素边距（见 .fs-chap 的 max-width）。
+     全屏模式：容器最大宽度 = 页面列（不超过视口） - 左右边距 - 计时器宽度 - 2 个元素边距（见 .fs-chap 的 max-width）。
      父项未超限：保持自然宽度，子项吃剩余空间；
      父项超限：切到 .is-split，容器撑满、两项等宽 */
   function updateChapterSplit() {
@@ -4482,9 +4502,9 @@ window.__siteDataReady.then(function () {
     }
     let fsMax = parseFloat(getComputedStyle(fsChap).maxWidth);
     if (!(fsMax > 0)) {
-      // calc 未能解析时兜底：按计时器实测宽度 + 2 个元素边距倒算
+      // calc 未能解析时兜底：按页面列宽 + 计时器实测宽度 + 2 个元素边距倒算
       const timerW = fsTimer.getBoundingClientRect().width || 64;
-      fsMax = window.innerWidth - timerW - GAP * 4;
+      fsMax = pageColumn().width - timerW - GAP * 4;
     }
     fsChap.classList.toggle('is-split', fsChap1.scrollWidth > fsMax / 2 + 1);
   }
