@@ -634,7 +634,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .post-timer-icon{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .post-timer-sep{color:var(--border)}
 .post-timer-num{display:inline-block;min-width:2ch}
-/* 长代码块内：计时信息收起，</> 与章节文本共用同一套纵向切换动画 */
+/* 长代码块内：计时信息收起，</> 与计时文字做纵向交接（一个滑出、一个从同侧滑入） */
 .post-timer-live,.fs-timer-live{
   display:flex;align-items:center;justify-content:flex-end;gap:.32rem;opacity:1;transform:translateY(0);
   min-width:0;max-width:var(--timer-live-w,none);overflow:hidden;
@@ -649,7 +649,16 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .fs-timer.is-code .fs-timer-live{max-width:0;opacity:0;transform:translateY(-.85em)}
 .post-timer.is-code .post-timer-code,
 .fs-timer.is-code:not(.is-error) .fs-timer-code{margin-left:0;opacity:1;transform:translateY(0)}
-.timer-roll-in{animation:chap-roll-in .32s var(--ease-out)}
+/* 反向滚动（向上回看）时，隐藏位置也翻到下方，让整段切换改为向下运动 */
+.post-timer.roll-dir-back:not(.is-code) .post-timer-code,
+.fs-timer.roll-dir-back:not(.is-code) .fs-timer-code{transform:translateY(.85em)}
+.post-timer.roll-dir-back.is-code .post-timer-live,
+.fs-timer.roll-dir-back.is-code .fs-timer-live{transform:translateY(.85em)}
+/* 换向的瞬间临时关闭过渡，让已隐藏的元素直接落到新的隐藏侧 */
+.post-timer.no-roll-transition .post-timer-live,
+.post-timer.no-roll-transition .post-timer-code,
+.fs-timer.no-roll-transition .fs-timer-live,
+.fs-timer.no-roll-transition .fs-timer-code{transition:none!important}
 
 .post-reload-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem}
 .post-reload-hint{font-size:.85rem;color:var(--text-3)}
@@ -703,14 +712,19 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
   -webkit-mask-image:linear-gradient(to right,transparent,#000 16px,#000 calc(100% - 16px),transparent);
   mask-image:linear-gradient(to right,transparent,#000 16px,#000 calc(100% - 16px),transparent);
 }
-/* 章节切换：文本自下方滚入 */
+/* 章节切换：方向跟随滚动 —— 下滑时自下方滚入，上滑时自上方滚入 */
 @keyframes chap-roll-in{
   from{transform:translateY(.85em);opacity:0}
   to{transform:translateY(0);opacity:1}
 }
+@keyframes chap-roll-in-back{
+  from{transform:translateY(-.85em);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
 .chap-text.chap-in{animation:chap-roll-in .32s var(--ease-out)}
+.chap-text.chap-in-back{animation:chap-roll-in-back .32s var(--ease-out)}
 @media (prefers-reduced-motion:reduce){
-  .chap-text.chap-in{animation:none}
+  .chap-text.chap-in,.chap-text.chap-in-back{animation:none}
 }
 .post-chapter-sep{
   font-family:var(--font-body);font-size:.72rem;color:var(--text-3);flex-shrink:0;
@@ -3772,6 +3786,9 @@ window.__siteDataReady.then(function () {
   let openPanel = null;
   let headings = [], tocItems = [], activeTocIdx = -1, tocDirty = true;
   let currentChap1 = '', currentChap2 = '';
+  let lastChapIdx = -1;          /* 上一次章节索引：用于判断切换方向 */
+  let lastPostScrollTop = 0;
+  let scrollDir = 1;             /* 1 = 向下阅读，-1 = 向上回看 */
   let postScrollLocked = false;
   let closePostTimer = null;
   let isFullscreen = false;
@@ -4145,13 +4162,6 @@ window.__siteDataReady.then(function () {
     /* 收起/展开用实测宽度做上限，避免动画从 none 直接跳到 0 */
     timer.style.setProperty('--timer-live-w', timerLiveWidth(live) + 'px');
   }
-  function replayTimerRoll(els) {
-    els.forEach(function (el) {
-      el.classList.remove('timer-roll-in');
-      void el.offsetWidth; // 重置动画，保证每次切换都从下方滚入
-      el.classList.add('timer-roll-in');
-    });
-  }
   function setCodeReading(on) {
     if (inLongCode === on) return;
     inLongCode = on;
@@ -4159,16 +4169,20 @@ window.__siteDataReady.then(function () {
     void (isFullscreen ? fsTimerLive : postTimerLive).offsetWidth; // 先落到实测宽度，收起时才有起点
     clearTimeout(timerWidthCleanup);
     timerWidthCleanup = null;
-    /* 移除上一轮的滚入动画，让离开的那个元素走 opacity/transform 过渡 */
-    [postTimerLive, postTimerCode, fsTimerLive, fsTimerCode].forEach(function (el) {
-      el.classList.remove('timer-roll-in');
-    });
+    /* 方向跟随滚动：下滑时整体向上交接，上滑时整体向下交接。
+       进入与离开的元素走相反方向：一个滑出时，另一个从它离开的那一侧滑回来 */
+    const back = scrollDir < 0;
+    if (postTimer.classList.contains('roll-dir-back') !== back) {
+      postTimer.classList.add('no-roll-transition');
+      fsTimer.classList.add('no-roll-transition');
+      postTimer.classList.toggle('roll-dir-back', back);
+      fsTimer.classList.toggle('roll-dir-back', back);
+      void postTimer.offsetWidth; // 让隐藏的元素先瞬间落到新的隐藏侧
+      postTimer.classList.remove('no-roll-transition');
+      fsTimer.classList.remove('no-roll-transition');
+    }
     postTimer.classList.toggle('is-code', on);
     fsTimer.classList.toggle('is-code', on);
-    /* 只让当前可见的计时器播放滚入，隐藏的那个留着下次出现时直接到位 */
-    replayTimerRoll(isFullscreen
-      ? [on ? fsTimerCode : fsTimerLive]
-      : [on ? postTimerCode : postTimerLive]);
     if (on) {
       pauseTimer();
     } else {
@@ -4185,13 +4199,10 @@ window.__siteDataReady.then(function () {
     inLongCode = false;
     clearTimeout(timerWidthCleanup);
     timerWidthCleanup = null;
-    postTimer.classList.remove('is-code');
-    fsTimer.classList.remove('is-code');
+    postTimer.classList.remove('is-code', 'roll-dir-back', 'no-roll-transition');
+    fsTimer.classList.remove('is-code', 'roll-dir-back', 'no-roll-transition');
     postTimer.style.removeProperty('--timer-live-w');
     fsTimer.style.removeProperty('--timer-live-w');
-    [postTimerLive, postTimerCode, fsTimerLive, fsTimerCode].forEach(function (el) {
-      el.classList.remove('timer-roll-in');
-    });
   }
   /* 阅读判定线落在一个高于可视区的代码块内时：暂停计时并换用代码图标 */
   function updateCodeReading() {
@@ -4459,17 +4470,17 @@ window.__siteDataReady.then(function () {
     el.addEventListener('scroll', function () { updateFade(el); }, { passive: true });
   });
 
-  /* 章节切换：文本变化时自下而上滚入 */
-  function rollText(block, t) {
+  /* 章节切换：方向随滚动 —— 下滑从下方滚入，上滑从上方滚入 */
+  function rollText(block, t, dir) {
     const el = block.querySelector('.chap-text');
     if (el.textContent === t) return;
     el.textContent = t;
-    el.classList.remove('chap-in');
+    el.classList.remove('chap-in', 'chap-in-back');
     void el.offsetWidth; // 重启动画
-    el.classList.add('chap-in');
+    el.classList.add(dir < 0 ? 'chap-in-back' : 'chap-in');
   }
 
-  function syncChapterIndicator(parts, current) {
+  function syncChapterIndicator(parts, current, dir) {
     const has = !!current.parent;
     /* has-child 只对普通模式的 .post-chapters-wrap 生效：父项自然宽度，子项吃剩余空间；
        is-split 由 updateChapterSplit 测量父项宽度后决定 */
@@ -4477,11 +4488,11 @@ window.__siteDataReady.then(function () {
     root.classList.toggle('has-child', has && !!current.child);
     parts.hint.classList.toggle('collapsed', has);
     parts.first.classList.toggle('collapsed', !has);
-    rollText(parts.first, current.parent);
+    rollText(parts.first, current.parent, dir);
     parts.first.scrollLeft = 0;
     parts.sep.classList.toggle('collapsed', !current.child);
     parts.second.classList.toggle('collapsed', !current.child);
-    rollText(parts.second, current.child);
+    rollText(parts.second, current.child, dir);
     parts.second.scrollLeft = 0;
     parts.first.classList.remove('fade-l', 'fade-r');
     parts.second.classList.remove('fade-l', 'fade-r');
@@ -4546,13 +4557,17 @@ window.__siteDataReady.then(function () {
   function updateChapterBlocks() {
     const c = getCurrentHeadings();
     if (c.parent === currentChap1 && c.child === currentChap2) {
+      lastChapIdx = c.idx;
       syncTocActive(false, c.idx);
       return;
     }
+    /* 索引变小说明在向上回看，章节文字改为从上方滚入 */
+    const dir = c.idx < lastChapIdx ? -1 : 1;
+    lastChapIdx = c.idx;
     currentChap1 = c.parent;
     currentChap2 = c.child;
-    syncChapterIndicator({ hint: chapHint, first: chap1, sep: chapSep, second: chap2 }, c);
-    syncChapterIndicator({ hint: fsChapHint, first: fsChap1, sep: fsChapSep, second: fsChap2 }, c);
+    syncChapterIndicator({ hint: chapHint, first: chap1, sep: chapSep, second: chap2 }, c, dir);
+    syncChapterIndicator({ hint: fsChapHint, first: fsChap1, sep: fsChapSep, second: fsChap2 }, c, dir);
     /* scrollWidth 不受折叠过渡影响，可立即判断；380ms 后再兜底测一次 */
     updateChapterSplit();
     setTimeout(updateChapterSplit, 380);
@@ -4573,6 +4588,7 @@ window.__siteDataReady.then(function () {
     tocDirty = true;
     currentChap1 = '';
     currentChap2 = '';
+    lastChapIdx = -1;
     setChapterEmpty(true);
     resetChapterIndicator({ hint: chapHint, first: chap1, sep: chapSep, second: chap2 });
     resetChapterIndicator({ hint: fsChapHint, first: fsChap1, sep: fsChapSep, second: fsChap2 });
@@ -5234,6 +5250,8 @@ window.__siteDataReady.then(function () {
 
     postContent.innerHTML = '';
     postContent.scrollTop = 0;
+    lastPostScrollTop = 0;
+    scrollDir = 1;
     postHeaderRow.style.setProperty('--post-progress', '0%');
     postHeaderRow.classList.add('is-loading');
     resetTimerNormal();
@@ -5415,6 +5433,11 @@ window.__siteDataReady.then(function () {
   });
 
   postContent.addEventListener('scroll', function () {
+    const top = postContent.scrollTop;
+    if (top !== lastPostScrollTop) {
+      scrollDir = top > lastPostScrollTop ? 1 : -1;
+      lastPostScrollTop = top;
+    }
     updateProgress(); updateChapterBlocks(); updateVFade(postContent); updateCodeReading();
   }, { passive: true });
 
