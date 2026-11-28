@@ -44,6 +44,7 @@
   --accent-hover:  var(--p-cinnabar-hi);
   --mark-bg:       color-mix(in srgb, var(--accent) 18%, transparent);
   --shadow-drop:   rgba(46,35,24,.07);
+  --scroll-shadow: rgba(46,35,24,.16);
   --scrim:         rgba(30,22,14,.28);
   --danger:        rgba(192,57,43,.55);
   --danger-bg:        rgba(192,57,43,.06);
@@ -130,6 +131,7 @@
   --accent-hover:  oklch(0.66 0.17 30);
   --mark-bg:       color-mix(in srgb, var(--accent) 26%, transparent);
   --shadow-drop:   rgba(0,0,0,.35);
+  --scroll-shadow: rgba(0,0,0,.45);
   --scrim:         rgba(0,0,0,.5);
   --syn-string:oklch(0.72 0.09 155);
   --syn-number:oklch(0.75 0.11 65);
@@ -1283,6 +1285,19 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .fade-b{-webkit-mask-image:linear-gradient(to top,transparent,#000 16px);mask-image:linear-gradient(to top,transparent,#000 16px)}
 .fade-t.fade-b{-webkit-mask-image:linear-gradient(to bottom,transparent,#000 16px,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(to bottom,transparent,#000 16px,#000 calc(100% - 16px),transparent)}
 
+/* 滚动边缘阴影：由 updateScrollShadow 按可滚动余量切换，行内代码与跳转弹窗复用 */
+.edge-shadow-l{--edge-shadow-l:inset 14px 0 12px -12px var(--scroll-shadow)}
+.edge-shadow-r{--edge-shadow-r:inset -14px 0 12px -12px var(--scroll-shadow)}
+.edge-shadow-t{--edge-shadow-t:inset 0 14px 12px -12px var(--scroll-shadow)}
+.edge-shadow-b{--edge-shadow-b:inset 0 -14px 12px -12px var(--scroll-shadow)}
+.edge-shadow-l,.edge-shadow-r,.edge-shadow-t,.edge-shadow-b{
+  box-shadow:
+    var(--edge-shadow-l,0 0 transparent),
+    var(--edge-shadow-r,0 0 transparent),
+    var(--edge-shadow-t,0 0 transparent),
+    var(--edge-shadow-b,0 0 transparent);
+}
+
 /* 评论面板 */
 /* flex-basis:auto：父级高度改为 auto 后，靠内容撑开；超过 max-height 时再收缩并滚动 */
 .cm-body{flex:1 1 auto;display:flex;flex-direction:column;overscroll-behavior:contain}
@@ -1969,6 +1984,29 @@ window.escapeHTML = function (value) {
   return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
   });
+};
+
+/* 滚动边缘阴影：axis 为 'x' 时切换左右，'y' 时切换上下。
+   与 .edge-shadow-* 配合，元素本身不需要额外包裹 */
+window.updateScrollShadow = function (el, axis) {
+  if (!el) return;
+  if (axis === 'x') {
+    if (el.clientWidth < 2) {
+      el.classList.remove('edge-shadow-l', 'edge-shadow-r');
+      return;
+    }
+    var overX = el.scrollWidth > el.clientWidth + 1;
+    el.classList.toggle('edge-shadow-l', overX && el.scrollLeft > 1);
+    el.classList.toggle('edge-shadow-r', overX && el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+    return;
+  }
+  if (el.clientHeight < 2) {
+    el.classList.remove('edge-shadow-t', 'edge-shadow-b');
+    return;
+  }
+  var overY = el.scrollHeight > el.clientHeight + 1;
+  el.classList.toggle('edge-shadow-t', overY && el.scrollTop > 1);
+  el.classList.toggle('edge-shadow-b', overY && el.scrollTop < el.scrollHeight - el.clientHeight - 1);
 };
 
 /* 文章元数据缺省值：标题 / 简介 / 日期缺失时显示占位，标签缺失时留白 */
@@ -2736,6 +2774,30 @@ window.__siteDataReady.then(function hydrateViews() {
     }
   }
 
+  /* 行内代码横向溢出：按滚动位置给左右边缘加阴影 */
+  function setupInlineCodeShadows(root) {
+    var codes = root.querySelectorAll(':not(pre) > code');
+    if (!codes.length) return;
+    var list = [];
+    for (var i = 0; i < codes.length; i++) list.push(codes[i]);
+    list.forEach(function (code) {
+      window.updateScrollShadow(code, 'x');
+      code.addEventListener('scroll', function () {
+        window.updateScrollShadow(code, 'x');
+      }, { passive: true });
+    });
+    if (window.ResizeObserver) {
+      if (window.__inlineCodeShadowRO) window.__inlineCodeShadowRO.disconnect();
+      var ro = new ResizeObserver(function (entries) {
+        for (var j = 0; j < entries.length; j++) {
+          window.updateScrollShadow(entries[j].target, 'x');
+        }
+      });
+      window.__inlineCodeShadowRO = ro;
+      list.forEach(function (code) { ro.observe(code); });
+    }
+  }
+
   /* 正文后处理：URL 字符串用等宽字体。
      链接文本本身就是 URL 的，加类；正文里裸写的 URL 文本，包一层 .url-string */
   var URL_STRING_RE = /(?:https?:\/\/|ftp:\/\/|www\.)[^\s<>"'`，。；：！？、（）【】]+/gi;
@@ -2821,6 +2883,7 @@ window.__siteDataReady.then(function hydrateViews() {
     collapseFootnotes(root);
     applyAbbreviations(root);
     setupCodeBlocks(root);
+    setupInlineCodeShadows(root);
     addBlockLinkColon(root);
     markUrlStrings(root);
   };
@@ -5797,15 +5860,24 @@ window.__siteDataReady.then(function () {
   let navReturnFocus = null;
   let boxOpen = false;
 
+  function updateNavUrlShadow() {
+    window.updateScrollShadow(navUrl, 'y');
+  }
+  navUrl.addEventListener('scroll', updateNavUrlShadow, { passive: true });
+  if (window.ResizeObserver) new ResizeObserver(updateNavUrlShadow).observe(navUrl);
+
   /* ── 跳转确认 ── */
   function openNav(href) {
     pendingHref = href;
     navReturnFocus = document.activeElement;
     navUrl.textContent = href;
+    navUrl.scrollTop = 0;
     navOpen = true;
     navModal.classList.add('is-open');
     navModal.setAttribute('aria-hidden', 'false');
     window.lockBackgroundScroll();
+    updateNavUrlShadow();
+    requestAnimationFrame(updateNavUrlShadow);
     navGo.focus({ preventScroll: true });
   }
   function closeNav() {
