@@ -873,13 +873,13 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* markdown 排版 */
 .post-content h1,.post-content h2,.post-content h3,.post-content h4{
   font-family:var(--font-body);font-weight:500;color:var(--title);
-  margin:2.4rem 0 .9rem;scroll-margin-top:1rem;
+  margin:2.4rem 0 .6rem;scroll-margin-top:1rem;
   font-variant-numeric:lining-nums;
 }
 .post-content h1{font-size:1.55rem}
 .post-content h2{font-size:1.3rem}
 .post-content h3{font-size:1.12rem}
-.post-content h4{font-size:1rem;color:var(--text-2)}
+.post-content h4{font-size:1rem;color:var(--text-2);margin-bottom:.9rem}
 .post-content h1:first-child,.post-content h2:first-child{margin-top:0}
 .post-content p{font-size:.95rem;color:var(--text-2);margin-bottom:1.1rem;letter-spacing:.01em}
 .post-content strong{color:var(--text);font-weight:600}
@@ -959,9 +959,21 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* 折叠后整块只剩顶栏一行 */
 .post-content .code-block.is-collapsed .code-body{display:none}
 .post-content .code-block.is-collapsed .code-head{border-bottom:none}
-.post-content blockquote{border-left:var(--hairline) solid var(--accent);margin:1.2rem 0;padding:.4rem 0 .4rem 1.1rem;color:var(--text-3)}
+.post-content blockquote{border-left:var(--hairline) solid var(--accent);margin:.8rem 0 1.2rem;padding:.4rem 0 .4rem 1.1rem;color:var(--text-3)}
 .post-content blockquote p{margin-bottom:.5rem}
 .post-content a{color:var(--accent)}
+/* 裸 URL 由 renderer 输出为块级按钮，复用复制弹窗的 .copy-main 外观 */
+.post-content .url-block{
+  display:flex;justify-content:flex-start;
+  box-sizing:border-box;min-width:0;
+  margin:.2rem 0;padding:0 .85rem;
+  color:var(--text-2);text-decoration:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.post-content .url-block-text{
+  flex:1 1 auto;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;
+}
 .post-content hr{border:none;border-top:var(--hairline) solid var(--border);margin:2.4rem auto;width:100%}
 .post-content img{max-width:100%;border-radius:var(--radius);border:var(--hairline) solid var(--border);margin:1.2rem 0}
 /* 原生媒体：iframe / video / audio 不再被 overflow-x:hidden 裁掉 */
@@ -1034,7 +1046,7 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 
 /* GitHub 告示块：> [!NOTE] 等 */
 .post-content .callout{
-  margin:1.3rem 0;padding:.8rem 1rem;
+  margin:.85rem 0 1.3rem;padding:.8rem 1rem;
   border-left:2px solid var(--callout-c);
   border-radius:0 var(--radius-sm) var(--radius-sm) 0;
   background:color-mix(in srgb,var(--callout-c) 9%,transparent);
@@ -1064,6 +1076,14 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* 正文里的 URL 字符串（裸 URL，或文本本身就是 URL 的链接）用等宽字体 */
 .post-content .url-string{font-family:var(--font-mono);overflow-wrap:anywhere}
 .post-content code{overflow-wrap:anywhere;word-break:break-word}
+/* 行内代码：超长连续字符串不换行，在自身宽度内横向滚动 */
+.post-content :not(pre) > code{
+  display:inline-block;max-width:100%;
+  overflow-x:auto;overflow-y:hidden;
+  vertical-align:middle;
+  white-space:normal;overflow-wrap:normal;word-break:normal;
+  -webkit-overflow-scrolling:touch;
+}
 
 /* 代码高亮配色（接入既有纸/墨/朱砂 token，暗色用提亮的变体） */
 .post-content .hljs-keyword,.post-content .hljs-literal,.post-content .hljs-selector-tag{color:var(--accent)}
@@ -2157,7 +2177,17 @@ window.__siteDataReady.then(function hydrateViews() {
         return '<h' + level + ' id="' + slugify(raw) + '">' + text + '</h' + level + '>';
       },
       link: function (href, title, text) {
-        if (/^https?:\/\//i.test(href)) {
+        var external = /^https?:\/\//i.test(href);
+        /* 裸 URL（链接文字与地址一致）渲染为块级按钮，复用复制弹窗的链接按钮样式；
+           有自定义文字的普通链接保持原样 */
+        if (text === href || text === window.escapeHTML(href)) {
+          /* text 已由 marked 转义，href 与之相同，直接复用可避免 autolink 的 &amp; 被二次转义 */
+          return '<a class="copy-main url-block" href="' + text + '"' +
+            (title ? ' title="' + window.escapeHTML(title) + '"' : '') +
+            (external ? ' target="_blank" rel="noopener noreferrer"' : '') +
+            '><span class="url-block-text">' + text + '</span></a>';
+        }
+        if (external) {
           return '<a href="' + window.escapeHTML(href) + '"' + (title ? ' title="' + window.escapeHTML(title) + '"' : '') +
             ' target="_blank" rel="noopener noreferrer">' + text + '</a>';
         }
@@ -2771,12 +2801,29 @@ window.__siteDataReady.then(function hydrateViews() {
     });
   }
 
+  /* 块级 URL 链接独占一行后，若前一段文字末尾没有标点，补一个全角冒号 */
+  var BLOCK_LINK_TAIL_RE = /[：:。.！!？?，,、；;…—]/;
+
+  function addBlockLinkColon(root) {
+    var links = root.querySelectorAll('a.url-block');
+    for (var i = 0; i < links.length; i++) {
+      var prev = links[i].previousSibling;
+      if (!prev || prev.nodeType !== 3) continue;
+      var value = prev.nodeValue || '';
+      var trimmed = value.replace(/\s+$/, '');
+      if (!trimmed) continue;
+      if (BLOCK_LINK_TAIL_RE.test(trimmed.charAt(trimmed.length - 1))) continue;
+      prev.nodeValue = trimmed + '：' + value.slice(trimmed.length);
+    }
+  }
+
   window.decoratePostContent = function (root) {
     if (!root) return;
     wrapContentTables(root);
     collapseFootnotes(root);
     applyAbbreviations(root);
     setupCodeBlocks(root);
+    addBlockLinkColon(root);
     markUrlStrings(root);
   };
 })();
