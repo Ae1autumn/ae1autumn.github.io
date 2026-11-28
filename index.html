@@ -1166,6 +1166,9 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 .panel-head-actions{display:flex;align-items:center;gap:.2rem;flex-shrink:0}
 .panel-close{width:var(--nav-icon-size);height:var(--nav-icon-size);border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;color:var(--text-3);transition:color var(--transition-fast),background-color var(--transition-fast)}
 .panel-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+/* 按钮命中区 30px、图标只有 14px，图标右侧会多出 8px 空白，
+   叠加容器 1rem 内边距后视觉留白比标题更大；用负外边距抵消，让图标与标题对齐 */
+.panel-head-actions .panel-close:last-child{margin-right:calc((14px - var(--nav-icon-size)) / 2)}
 .panel-body{flex:1;overflow-y:auto;overscroll-behavior:contain}
 
 /* 章节面板 */
@@ -1201,6 +1204,8 @@ button::-moz-focus-inner,input::-moz-focus-inner{border:0}
 /* 搜索面板 */
 #panel-search .panel-body{flex:0 1 auto;transition:height .35s var(--ease-out)}
 .search-field{display:flex;align-items:center;gap:.5rem;height:var(--control-h);padding:0 1rem;border-bottom:var(--hairline) solid var(--border);flex-shrink:0}
+/* 同 .panel-head-actions：抵消关闭按钮命中区比图标多出的 8px */
+.search-field .panel-close{margin-right:calc((14px - var(--nav-icon-size)) / 2)}
 .search-field svg{width:14px;height:14px;stroke:var(--text-3);fill:none;stroke-width:1.5;stroke-linecap:round;flex-shrink:0}
 .search-input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:var(--font-body);font-size:.88rem;color:var(--text)}
 .search-input::-webkit-search-cancel-button{display:none;-webkit-appearance:none}
